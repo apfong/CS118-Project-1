@@ -10,7 +10,6 @@
 */
 class HttpMessage {
 public:
-  virtual void decodeFirstLine(ByteBlob line) = 0;
   void decodeHeaderLine(Byteblob line);
 
   int getVersion() { return m_version; }
@@ -23,6 +22,8 @@ public:
   ByteBlob getPayload() { return m_payload }
   void setPayLoad(ByteBlob blob) { m_payload = blob; }
 
+  virtual vector<uint_8> encode(ByteBlob line) = 0;
+  virtual HttpMessage decode(ByteBlob line) = 0;
 
 private:
   int m_version;
@@ -43,6 +44,9 @@ public:
   vector<uint_8> encode(){}
   void consume(){}
 
+  virtual vecotr<uint_8> encode(ByteBlob line) {}
+  virtual HttpMessage decode(ByteBlob line) {}
+
 private:
   string m_method;
   string m_url;
@@ -50,8 +54,6 @@ private:
 
 class HttpResponse : HttpMessage {
 public:
-  virtual void decodeFirstLine(ByteBlob line);
-
   int getStatus() { return m_status; }
   void setStatus(int status) { m_status = status; }
 
@@ -59,6 +61,9 @@ public:
   void setDescription(string description) { 
     m_statusDescription = description;
   }
+
+  virtual vecotr<uint_8> encode(ByteBlob line) {}
+  virtual HttpMessage decode(ByteBlob line) {}
 
 private:
   int m_status;
