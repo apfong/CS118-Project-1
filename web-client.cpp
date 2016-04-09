@@ -28,7 +28,7 @@ main()
 
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(40000);     // short, network byte order
+  serverAddr.sin_port = htons(4000);     // short, network byte order
   serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
