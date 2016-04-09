@@ -9,10 +9,25 @@
 
 #include <iostream>
 #include <sstream>
+using namespace std;
 
 int
-main()
+main(int argc, char* argv[])
 {
+	//AF_INET is current default IP
+	string hostname = "localhost";
+	int port = 4000;
+	string filedir = ".";
+	if(argc >= 2)
+		hostname = argv[1];
+	if(argc >= 3)
+		port = atoi(argv[2]);
+	if(argc >= 4)
+		filedir = argv[3];
+	if(argc > 4){
+		cerr << "incorrect number of arguments";
+		return 1;
+	}
   // create a socket using TCP IP
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -26,7 +41,7 @@ main()
   // bind address to socket
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(4000);     // short, network byte order
+  addr.sin_port = htons(port);     // short, network byte order
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   memset(addr.sin_zero, '\0', sizeof(addr.sin_zero));
 
