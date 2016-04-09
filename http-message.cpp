@@ -1,31 +1,44 @@
+#include <string>
 #include <map>
 #include <vector>
 
+/*
+  Request line
+  Headers
+
+  Body (only in some messages)
+*/
 class HttpMessage {
 public:
   virtual void decodeFirstLine(ByteBlob line) = 0;
-  int getVersion();
-  void setHeader(string key, string value);
-  string getHeader(string key);
   void decodeHeaderLine(Byteblob line);
-  void setPayLoad(ByteBlob blob);
-  ByteBlob getPayload();
+
+  int getVersion() { return m_version; }
+
+  string getHeader(string key) { return m_headers[key]; }
+  void setHeader(string key, string value) {
+    m_headers.insert(std::pair<string,string>(key, value));
+  }
+
+  ByteBlob getPayload() { return m_payload }
+  void setPayLoad(ByteBlob blob) { m_payload = blob; }
+
 
 private:
   int m_version;
   map<string, string> m_headers;
-  ByteBlob
+  ByteBlob m_payload;
 };
 
 class HttpRequest : HttpMessage {
 public:
   HttpRequest() {}
 
-  HttpMethod getMethod();
-  string getUrl();
+  string getMethod() { return m_method; }
+  void setMethod(string method) { m_method = method; }
 
-  void setMethod(HttpMethod method){}
-  void setUrl(string url){}
+  string getUrl() { return m_url; }
+  void setUrl(string url) { m_url = url; }
 
   vector<uint_8> encode(){}
   void consume(){}
@@ -38,12 +51,16 @@ private:
 class HttpResponse : HttpMessage {
 public:
   virtual void decodeFirstLine(ByteBlob line);
-  HttpStatus getStatus();
-  void setStatus(HttpStatus status);
-  string getDescription();
-  void setDescription(string description);
+
+  int getStatus() { return m_status; }
+  void setStatus(int status) { m_status = status; }
+
+  string getDescription() { return m_statusDescription; }
+  void setDescription(string description) { 
+    m_statusDescription = description;
+  }
 
 private:
-  HttpStatus m_status;
+  int m_status;
   string m_statusDescription;
 };
