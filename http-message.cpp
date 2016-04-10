@@ -71,15 +71,17 @@ public:
     //store www... into host string
     while (url[i] != '/') {
       host += url[i];
+      i++;
     }
 
     //store /... into m_url
     while (i < url_size) {
       m_url += url[i];
+      i++;
     }
 
     //default version is 1.0
-    m_version = 1.0;
+    m_version = 0;
 
     m_headers.insert(std::pair<string,string>("Host", host));
 
@@ -96,12 +98,14 @@ public:
     //method
     while (http_msg[i] != ' ') {
       m_method += http_msg[i];
+      i++;
     }
     i++;
 
     //url
     while (http_msg[i] != ' ') {
       m_url += http_msg[i];
+      i++;
     }
     i++;
 
@@ -134,11 +138,13 @@ public:
 
       while (http_msg[i] != ':') {
 	key += http_msg[i];
+	i++;
       }
       i += 2;
 
       while (http_msg[i] != '\r') {
 	value += http_msg[i];
+	i++;
       }
       i += 2;
 
@@ -150,6 +156,7 @@ public:
     //payload (Optional message body) - read from request_message vector
     while (i < msg_size) {
       m_payload.pushback(request_message[i]);
+      i++;
     }
 
   }
