@@ -1,208 +1,283 @@
+//
+//  main.cpp
+//  httpmessage
+//
+//  Created by Max Chern on 4/21/16.
+//  Copyright © 2016 Max Chern. All rights reserved.
+//
+#include <iostream>
+using namespace std;
+
 #include <string>
 #include <map>
 #include <vector>
 
-/*
-  Request line
-  Headers
+//==========================================//
+//============HttpMessage===================//
+//==========================================//
 
-  Body (only in some messages)
-*/
-
-vector<uint_8> encode(string message){
-  vector<uint_8>encmsg;
-  for(int i =0; i< message.size(); i++){
-    encmsg.pushback((uint_8)message[i]);
-  }
-  return encmsg;
-}
-string HttpMessage decode(vector<uint_8> encmsg){
-  string decoded = "";
-  for(int i = 0; i<encmsg.size(); i++){
-    decoded += (char)encmsg[i];
-  }
-  return decoded;
-}
-  
 class HttpMessage {
 public:
-  void decodeHeaderLine(ByteBlob line);
-
-  int getVersion() { return m_version; }
-
-  string getHeaders() { return m_headers; }
-  void setHeader(string key, string value) {
-    m_headers.insert(std::pair<string,string>(key, value));
-  }
-
-  vector<uint_8> getPayload() { return m_payload }
-  void setPayLoad(vector<uint_8> payload) { m_payload = payload; }
-
-  
+    HttpMessage();
+    
+    int getVersion();
+    void setVersion(int version);
+    
+    map<string, string> getHeaders();
+    void setHeader(string key, string value);
+    
+    string getPayload();
+    void setPayload(string payload);
+    
 private:
-  int m_version;                  // 0,1,2 --> 1.0, 1.1, 2.0
-  map<string, string> m_headers;  //client: host
-                                  //server: date, server, content type, content length
-  vector<uint_8> m_payload;
+    int m_version; //0 -> 1.0, 1 -> 1.1, 2 -> 2.0
+    map<string, string> m_headers;
+    string m_payload;
 };
 
-class HttpRequest : HttpMessage {
+
+HttpMessage::HttpMessage() {
+    m_version = 0;
+    m_payload = "";
+}
+
+int HttpMessage::getVersion() {
+    return m_version;
+}
+
+void HttpMessage::setVersion(int version) {
+    m_version = version;
+}
+
+map<string, string> HttpMessage::getHeaders() {
+    return m_headers;
+}
+
+void HttpMessage::setHeader(string key, string value) {
+    m_headers.insert(pair<string, string>(key, value));
+}
+
+string HttpMessage::getPayload() {
+    return m_payload;
+}
+
+void HttpMessage::setPayload(string payload) {
+    m_payload = payload;
+}
+
+
+//==========================================//
+//============HttpRequest===================//
+//==========================================//
+
+class HttpRequest : public HttpMessage {
 public:
+    HttpRequest();
+    
+    //CLIENT sends a request
+    HttpRequest(string url);
+    
+    string getMethod();
+    void setMethod(string method);
+    
+    string getUrl();
+    void setUrl(string url);
+    
+    int getPort();
+    void setPort(int port);
+    
+    string buildRequest();
+    
+private:
+    string m_method;
+    string m_url;
+    int m_port;
+};
 
-  HttpRequest() {}
 
-  // constructor for when the client sends a request
-  //*** assuming format is http(s)://www. ...
-  HttpRequest(string url) {
 
+HttpRequest::HttpRequest() {
+    m_method = "";
+    m_url = "";
+    m_port = 0;
+}
+
+HttpRequest::HttpRequest(string url) {
     m_method = "GET";
     
     //splitting up url into HOST/URL
     string host = "";
     int i = 0;
     int url_size = url.size();
-
-    //skip http(s)://
+    
+    //iterate past http(s)://
     while (url[i] != '/') {
-      i++;
+        i++;
     }
     i += 2;
-
+    
     //store www... into host string
-    while (url[i] != '/') {
-      host += url[i];
-      i++;
-    }
-
-    //store /... into m_url
-    while (i < url_size) {
-      m_url += url[i];
-      i++;
-    }
-
-    //default version is 1.0
-    m_version = 0;
-
-    m_headers.insert(std::pair<string,string>("Host", host));
-
-  }
-
-  //constructor for when the server receives a request
-  HttpRequest(vector<uint_8> request_message) {
-
-    string http_msg = decode(request_message);
-
-    int i = 0;
-    int msg_size = request_message.size();
-
-    //method
-    while (http_msg[i] != ' ') {
-      m_method += http_msg[i];
-      i++;
-    }
-    i++;
-
-    //url
-    while (http_msg[i] != ' ') {
-      m_url += http_msg[i];
-      i++;
-    }
-    i++;
-
-    //skip HTTP/, then get version number
-    while (http_msg [i] != '/') {
-      i++;
-    }
-    i++;
-    if (http_msg[i] == '1') {
-      if (http_msg[i+2] == '0') {
-	m_version = 0;
-      } else {
-	m_version = 1;
-      }
-    } else {
-      m_version = 2;
+    while (url[i] != '/' && url[i] != ':') {
+        host += url[i];
+        i++;
     }
     
-    //skip to header lines
-    while (http_msg[i] != '\n') {
-      i++;
+    //if a port number is specified...
+    if (url[i] == ':') {
+        i++;
+        
+        string portnum;
+        
+        while (url[i] != '/') {
+            portnum += url[i];
+            i++;
+        }
+        
+        m_port = stoi(portnum);
+        
+    } else { //else default to 80
+        m_port = 80;
     }
-    i++;
-
-    //headers
-    while (http_msg[i] != '\r') {
-
-      string key;
-      string value;
-
-      while (http_msg[i] != ':') {
-	key += http_msg[i];
-	i++;
-      }
-      i += 2;
-
-      while (http_msg[i] != '\r') {
-	value += http_msg[i];
-	i++;
-      }
-      i += 2;
-
-      m_headers.insert(std::pair<string,string>(key, value));
-
+    
+    //store /... into m_url
+    while (i < url_size) {
+        m_url += url[i];
+        i++;
     }
-    i += 2;
+    
+    //default version is 1.0
+    setVersion(0);
+    setHeader("Host", host);
+    setPayload("");
+    
+}
 
-    //payload (Optional message body) - read from request_message vector
-    while (i < msg_size) {
-      m_payload.pushback(request_message[i]);
-      i++;
+string HttpRequest::getMethod() {
+    return m_method;
+}
+
+void HttpRequest::setMethod(string method) {
+    m_method = method;
+}
+
+string HttpRequest::getUrl() {
+    return m_url;
+}
+
+void HttpRequest::setUrl(string url) {
+    m_url = url;
+}
+
+int HttpRequest::getPort() {
+    return m_port;
+}
+
+void HttpRequest::setPort(int port) {
+    m_port = port;
+}
+
+string HttpRequest::buildRequest() {
+    string request = getMethod() + " " + getUrl() + " HTTP/";
+    switch(getVersion()) {
+        case 1:
+            request += "1.1\r\n";
+            break;
+        case 2:
+            request += "2.0\r\n";
+            break;
+        default:
+            request += "1.0\r\n";
     }
-
-  }
-
-  string getMethod() { return m_method; }
-  void setMethod(string method) { m_method = method; }
-
-  string getUrl() { return m_url; }
-  void setUrl(string url) { m_url = url; }
-
-  vector<uint_8> encode(){}
-  void consume(){}
-
-  string buildRequest(){
-    string request = getMethod() + " " + getURL() + " HTTP/"+getVersion()+"\r\n";
-    map<string,string>headers = getHeaders();
-    map<string,string>::iterator it;
-    for(it = headers.begin(); it != headers.end(); it++){
-      request += it->first+": "+it->second+"\r\n";
+    
+    map<string, string>headers = getHeaders();
+    map<string, string>::iterator it;
+    for (it = headers.begin(); it != headers.end(); it++) {
+        request += it->first + ": " + it->second + "\r\n";
     }
     request += "\r\n";
+    request += getPayload();
+    
     return request;
-
-  }
-
-
-private:
-  string m_method;
-  string m_url;
-};
-
-class HttpResponse : HttpMessage {
-public:
-  
-  HttpResponse() {}
-
-  int getStatus() { return m_status; }
-  void setStatus(int status) { m_status = status; }
-
-  string getDescription() { return m_statusDescription; }
-  void setDescription(string description) { 
-    m_statusDescription = description;
-  }
+}
 
 
-private:
-  int m_status;
-  string m_statusDescription; 
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void printHeaders(map<string, string> headers) {
+    
+    map<string, string>::iterator it = headers.begin();
+    while (it != headers.end()) {
+        cout << it->first << ": " << it->second << endl;
+        it++;
+    }
+}
+
+
+
+int main() {
+    /*
+     HttpRequest test;
+     
+     cout << test.getVersion() << endl;
+     test.setVersion(5);
+     cout << test.getVersion() << endl;
+     test.setVersion(1);
+     cout << test.getVersion() << endl;
+     
+     
+     printHeaders(test.getHeaders());
+     test.setHeader("Host", "hello");
+     printHeaders(test.getHeaders());
+     test.setHeader("Test", "bye");
+     printHeaders(test.getHeaders());
+     
+     cout << test.getPayload() << endl;
+     test.setPayload("TestPayload");
+     cout << test.getPayload() << endl;
+     
+     cout << test.getMethod() << endl;
+     test.setMethod("MethodTest");
+     cout << test.getMethod() << endl;
+     
+     cout << test.getUrl() << endl;
+     test.setUrl("TestUrl");
+     cout << test.getUrl() << endl;
+     
+     cout << test.getPort() << endl;
+     test.setPort(80);
+     cout << test.getPort() << endl;
+     */
+    
+    HttpRequest facebook("http://www.facebook.com/index.html");
+    
+    /*
+     cout << "url: " << facebook.getUrl() << endl;
+     cout << "method: " << facebook.getMethod() << endl;
+     cout << "port: " << facebook.getPort() << endl;
+     
+     cout << "version: " << facebook.getVersion() << endl;
+     cout << "payload: " << facebook.getPayload() << endl;
+     
+     printHeaders(facebook.getHeaders());
+     */
+    
+    
+    cout << facebook.buildRequest() << endl;
+    
+}
+
