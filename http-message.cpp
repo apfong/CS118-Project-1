@@ -201,23 +201,6 @@ string HttpRequest::buildRequest() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void printHeaders(map<string, string> headers) {
     
     map<string, string>::iterator it = headers.begin();
@@ -228,9 +211,9 @@ void printHeaders(map<string, string> headers) {
 }
 
 
-
+/*
 int main() {
-    /*
+    
      HttpRequest test;
      
      cout << test.getVersion() << endl;
@@ -261,11 +244,11 @@ int main() {
      cout << test.getPort() << endl;
      test.setPort(80);
      cout << test.getPort() << endl;
-     */
+     
     
-    HttpRequest facebook("http://www.facebook.com/index.html");
+   // HttpRequest facebook("http://www.facebook.com/index.html");
     
-    /*
+    
      cout << "url: " << facebook.getUrl() << endl;
      cout << "method: " << facebook.getMethod() << endl;
      cout << "port: " << facebook.getPort() << endl;
@@ -274,10 +257,10 @@ int main() {
      cout << "payload: " << facebook.getPayload() << endl;
      
      printHeaders(facebook.getHeaders());
-     */
+     
     
     
     cout << facebook.buildRequest() << endl;
     
 }
-
+*/

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <fstream>
-//#include "http-message.cpp"
+#include "http-message.cpp"
 
 #include <iostream>
 #include <sstream>
@@ -34,9 +34,12 @@ main(int argc, char* argv[])
   //   return 1;
   // }
 
-  //HttpRequest request(url);
-  const char * host = url;//request.getHeaders["Host"].c_str();
-  const char * port = "80";//request.getPort();
+  HttpRequest request(url);
+  const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
+  const char * port = to_string(request.getPort()).c_str();
+
+  cout <<host<<"end"<<endl;
+
   struct addrinfo hints;
   struct addrinfo* res;
   // prepare hints
@@ -64,18 +67,19 @@ main(int argc, char* argv[])
   //create a struct sockaddr with the given port and ip address
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(80);//request.getPort();
+  serverAddr.sin_port = htons(request.getPort());//request.getPort();
   //serverAddr.sin_addr.s_addr = (struct sockaddr_in*)res->ai_addr;
   //serverAddr.sin_port = htons(80);     // short, network byte order
   serverAddr.sin_addr.s_addr = inet_addr(ipstr);
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
-
+  cout<<"trying to connect"<<endl;
   // connect to the server with struct serverAddr
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
     perror("connect");
     return 2;
   }
+  cout<<"connected!"<<endl;
 
   //socket for the client
   struct sockaddr_in clientAddr;
@@ -97,7 +101,9 @@ main(int argc, char* argv[])
   std::string input;
   char buf[1] = {0};
   std::stringstream ss;
-  string test = "GET /classes/111_fall15/index.html HTTP/1.0\r\nHost: www.lasr.cs.ucla.edu\r\n\r\n";
+  //string test = "GET /classes/111_fall15/index.html HTTP/1.0\r\nHost: www.lasr.cs.ucla.edu\r\n\r\n";
+  string test = request.buildRequest();
+  cout<<test<<endl;
 
   //while (!isEnd) {
     memset(buf, '\0', sizeof(buf));
