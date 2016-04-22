@@ -1,5 +1,7 @@
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -7,17 +9,20 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <fstream>
+
 #include <iostream>
 #include <sstream>
 using namespace std;
 
-int
-main(int argc, char* argv[])
+#define MAXBYTES 512 // most bytes we can receive at a time
+
+int main(int argc, char* argv[])
 {
 	//AF_INET is current default IP
 	string hostname = "localhost";
 	int port = 4000;
-	string filedir = ".";
+	string filedir = "./";
 	if(argc >= 2)
 		hostname = argv[1];
 	if(argc >= 3)
@@ -43,6 +48,7 @@ main(int argc, char* argv[])
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);     // short, network byte order
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+//  addr.sin_addr.s_addr = inet_addr(hostname);
   memset(addr.sin_zero, '\0', sizeof(addr.sin_zero));
 
   if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -51,55 +57,124 @@ main(int argc, char* argv[])
   }
 
   // set socket to listen status
-  if (listen(sockfd, 1) == -1) {
+  if (listen(sockfd, 1) == -1) {   // how many connections the queue will hold onto
     perror("listen");
     return 3;
   }
 
-  // accept a new connection
-  struct sockaddr_in clientAddr;
-  socklen_t clientAddrSize = sizeof(clientAddr);
-  int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
-
-  if (clientSockfd == -1) {
-    perror("accept");
-    return 4;
-  }
-
-  char ipstr[INET_ADDRSTRLEN] = {'\0'};
-  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-  std::cout << "Accept a connection from: " << ipstr << ":" <<
-    ntohs(clientAddr.sin_port) << std::endl;
-
   // read/write data from/into the connection
   bool isEnd = false;
-  char buf[20] = {0};
-  std::stringstream ss;
+  int bufSize = 1;
 
   while (!isEnd) {
-    memset(buf, '\0', sizeof(buf));
+    // accept a new connection
+    struct sockaddr_in clientAddr;
+    socklen_t clientAddrSize = sizeof(clientAddr);
+    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
 
-    if (recv(clientSockfd, buf, 20, 0) == -1) {
-      perror("recv");
-      return 5;
+    if (clientSockfd == -1) {
+      perror("accept");
+      return 4;
     }
 
-    ss << buf << std::endl;
-    std::cout << buf << std::endl;
+    char ipstr[INET_ADDRSTRLEN] = {'\0'};
+    inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+    std::cout << "Accept a connection from: " << ipstr << ":" <<
+      ntohs(clientAddr.sin_port) << std::endl;
+
+    if (!fork()) {   // if in here, we're on child process
+      char buf[MAXBYTES] = {0};
+      std::stringstream ss;
+      close(sockfd); // closes listener for new connections
+      memset(buf, '\0', sizeof(buf));
+      int bytesRecv;
+      size_t foundHeaderEnd;
+
+      while ((bytesRecv = read(clientSockfd, buf, bufSize)) > 0) {
+        // TODO: Implement HTTP Timeout, say if server received part of
+        // message, but hasnt received the rest of the message for a long time
+        ss << buf;
+
+        foundHeaderEnd = ss.str().find("rnrn");
+        //std::cout << buf << "    " << to_string(foundHeaderEnd) << std::endl;
+        if (foundHeaderEnd != string::npos)
+          break;
+
+        memset(buf, '\0', sizeof(buf));
+      }
+
+      // End of while loop
+      if (bytesRecv == -1) {
+        perror("recv");
+        return 5;
+      }
+
+      // TODO: Create HttpMessage, if it fails, return a 400 bad request message
+      // do error checking on header fields such as version, if bad version !1.0 | !1.1
+      // then return 505 HTTP version not supported response
+      // if method (GET/POST) is not GET, then return 501 Not implemented response
+
+      // Preparing to open file
+      std::stringstream filestream;
+      std::string line;
+
+      std::string resFilename = ss.str().substr(0,15);
+      //ifstream resFile (resFilename);
+      streampos size;
+      char* memblock;
+      ifstream resFile (resFilename, ios::in|ios::binary|ios::ate);
 
 
-    if (send(clientSockfd, buf, 20, 0) == -1) {
-      perror("send");
-      return 6;
+      // Dealing with root file request
+      if (resFilename == "/") {
+        // check if index exists and is unlocked and accessible
+        ifstream infile("index.html");
+        if (infile.good())
+          resFilename = "index.html";
+      }
+
+      // Prepending starting directory to requested filename
+      resFilename.insert(0, filedir);
+
+      // Opening file
+      if (resFile.is_open()) {
+        /*
+        while (getline(resFile, line)) {
+          filestream << line << endl;
+        }
+        */
+        size = resFile.tellg();
+        memblock = new char [size];
+        resFile.seekg (0, ios::beg);
+        resFile.read (memblock, size);
+        resFile.close();
+
+        // Sending file back to client if it exists and was read correctly
+        // send back 200 OK status code
+        //if (send(clientSockfd, filestream.str().c_str(), filestream.str().size(), 0) == -1) {
+        if (send(clientSockfd, memblock, size, 0) == -1) {
+          perror("send");
+          return 6;
+        }
+        else
+          //std::cout << "sent: " << filestream.str().c_str() << endl;
+          std::cout << "sent: " << memblock << endl;
+
+        delete[] memblock;
+      }
+      // can't open file, return 404 here or other error
+      else {
+        size = 0;
+        std::cout << "404 ERROR\n";
+      }
+
+      printf("closing connection to %d\n", clientSockfd);
+      close(clientSockfd);
+      exit(0);
     }
-
-    if (ss.str() == "close\n")
-      break;
-
-    ss.str("");
+    else { // parent still listens for close
+      close(clientSockfd);
+    }
   }
-
-  close(clientSockfd);
-
   return 0;
 }
