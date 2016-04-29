@@ -56,6 +56,9 @@ of a normal http header, with proper spacing and carriage returns
 
 Overall:
 
+Partial response
+Partial request
+Bad request and see how you handle it
 
 ------------------------------------------------------------------------------
 |                 Contribution of each team member and their UID             |

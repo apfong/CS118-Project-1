@@ -37,8 +37,12 @@ main(int argc, char* argv[])
 
   HttpRequest request = HttpRequest();
   request.urlToObject(url);
-  const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
-  const char * port = to_string(request.getPort()).c_str();
+  string hoststring = request.getHeaders()["Host"];
+  string portstring = to_string(request.getPort());
+  const char * host = hoststring.c_str();
+  const char * port = portstring.c_str();
+//  const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
+//  const char * port = to_string(request.getPort()).c_str();
 
   cout <<host<<"end"<<endl;
 
