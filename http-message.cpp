@@ -153,15 +153,15 @@ void HttpRequest::urlToObject(string url) {
         m_port = 80;
     }
     
-    /*
+    
     //store /... into m_url
     while (i < url_size) {
         m_url += url[i];
         i++;
     }
-    */
-    std::size_t lastBackslash = url.find_last_of("/");
-    m_url = url.substr(lastBackslash);
+    
+    //std::size_t lastBackslash = url.find_last_of("/");
+    //m_url = url.substr(lastBackslash);
     
     //default version is 1.0
     setVersion(0);

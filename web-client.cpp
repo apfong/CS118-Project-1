@@ -137,7 +137,7 @@ main(int argc, char* argv[])
 
     while ((bytesRecv = read(sockfd, buf, bufSize)) > 0) {
       //std::cout << buf;
-      std::cout << "BytesRecv: " << bytesRecv << endl;
+      //std::cout << "BytesRecv: " << bytesRecv << endl;
       ss << buf;
       for (int i = 0; i < bytesRecv; i++) {
         msg.push_back(buf[i]);
@@ -149,12 +149,16 @@ main(int argc, char* argv[])
       if (foundHeaderEnd != string::npos) {
         if (createdResponse == 0) {
           response->responseToObject(msg);
+          //vector<char> literal = response->buildResponse();
+          //for(int i = 0; i < literal.size(); i++){
+          //  cout<<literal[i];
+         // }
           map<string,string> headers = response->getHeaders();
-          map<string,string>::iterator it = headers.find("Content Length");
+          map<string,string>::iterator it = headers.find("Content-Length");
           string reqHostname;
           if (it != headers.end()) {
             std::string::size_type sz;
-            payloadLen = stoi(headers["Content Length"]);
+            payloadLen = stoi(headers["Content-Length"]);
             cout << "Content Length: " << payloadLen << endl;
           }
           createdResponse = 1;
@@ -177,14 +181,18 @@ main(int argc, char* argv[])
 
     int headerLen = (count-payloadLen);
     string msgStr(msg.begin(), msg.begin()+headerLen);
-    cout << msgStr << endl;
+    //cout << msgStr << endl;
     // (count-payloadLen) gets rid of the header
-    string strOut(msg.begin()+(count-payloadLen), msg.end());
-    cout << strOut;
+    cout<<count<<endl<<payloadLen<<endl<<count - payloadLen;
+    //string strOut(msg.begin()+(count-payloadLen), msg.end());
+    string strOut(msg.begin(), msg.end());
+    //cout << strOut;
 
 
     // TODO: need to get the filename from url? or somewhere else
-    string filename = request.getUrl();
+    string fileurl = request.getUrl();
+    std::size_t lastBackslash = fileurl.find_last_of("/");
+    string filename = fileurl.substr(lastBackslash);
     if (filename == "/")
       filename = "/index.html";
     filename.erase(0,1);
@@ -197,13 +205,14 @@ main(int argc, char* argv[])
       //TODO: for some reason, its not writing to the file when doing:
       // ./web-client http://google.com/
       // it gets the response, just doesn't write to the file
+      //cout<<strOut;
       cout << "Writing to :" << filename << endl;
-//      ofstream file;
-//      file.open(filename);
+      //ofstream file;
+      //file.open(filename);
       ofstream file(filename, std::ios::out | std::ofstream::binary);
       std::copy(msg.begin()+headerLen, msg.end(), std::ostreambuf_iterator<char>(file));
-//      file << strOut;
-//      file.close();
+      //file << strOut;
+      //file.close();
     }
     /* Testing finding ok status code
     else {

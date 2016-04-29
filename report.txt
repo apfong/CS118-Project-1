@@ -23,7 +23,10 @@ the client socket until a certain delimiter, for ex: \r\n\r\n. Worked
 iteratively, communicating with a simple client that would send a message.
 Hard part was understanding how to use recv to read in only a specific part of
 the message. After figuring out that it is possible to use recv byte by byte,
-the parsing of the incoming request was much easier.
+the parsing of the incoming request was much easier.  We first implemented the
+transfer using a string, and this worked fine for text based files like html.
+However, it did not work for transferring images for example, so we changed
+our implementation to use a vector of chars instead.
 
 HTTP Message:
 
