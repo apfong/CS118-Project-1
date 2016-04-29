@@ -101,7 +101,7 @@ main(int argc, char* argv[])
   // send/receive data to/from connection
   bool isEnd = false;
   std::string input;
-  int bufSize = 4;
+  int bufSize = 1000;
   char buf[bufSize];
   std::stringstream ss;
   //string test = "GET /classes/111_fall15/index.html HTTP/1.0\r\nHost: www.lasr.cs.ucla.edu\r\n\r\n";
@@ -123,20 +123,43 @@ main(int argc, char* argv[])
     }
 
 
-    int bytesRecv;
+    int bytesRecv; // variable to hold how many bytes read each loop of recv
     size_t foundHeaderEnd;
     vector<char> msg;
+    HttpResponse* response = new HttpResponse();
+    int createdResponse = 0; // bool to tell if response obj was created yet
+    int count = 0; // total bytes received
+    int payloadLen = 0;
+
     while ((bytesRecv = read(sockfd, buf, bufSize)) > 0) {
       //std::cout << buf;
+      std::cout << "BytesRecv: " << bytesRecv << endl;
       ss << buf;
       for (int i = 0; i < bytesRecv; i++) {
         msg.push_back(buf[i]);
+        count++;
       }
 
       foundHeaderEnd = ss.str().find("\r\n\r\n");
       //std::cout << buf << "    " << to_string(foundHeaderEnd) << std::endl;
-      if (foundHeaderEnd != string::npos)
-        break;
+      if (foundHeaderEnd != string::npos) {
+        if (createdResponse == 0) {
+          response->responseToObject(msg);
+          map<string,string> headers = response->getHeaders();
+          map<string,string>::iterator it = headers.find("Content Length");
+          string reqHostname;
+          if (it != headers.end()) {
+            std::string::size_type sz;
+            payloadLen = stoi(headers["Content Length"]);
+            cout << "Content Length: " << payloadLen << endl;
+          }
+          createdResponse = 1;
+        }
+        if ((bytesRecv < bufSize) && (count == payloadLen)) {
+          std::cout << "BREAKING OUT\n";
+          break;
+        }
+      }
 
       memset(buf, '\0', sizeof(buf));
     }
@@ -204,14 +227,21 @@ main(int argc, char* argv[])
     count++;
     }
     */
-    string strOut(msg.begin(), msg.end());
+    string strOut(msg.begin()+(count-payloadLen), msg.end());
     cout << strOut;
    // cout << ss.str();
     ofstream file;
-    file.open("pic.jpg");
+    string filename = request.getUrl();
+    filename.erase(0,1);
+    cout << "Writing to :" << filename << endl;
+    string responseStatus = response->getStatus();
+    cout << "Status :" << responseStatus << endl;
+//    file.open("pic.jpg");
+    file.open(filename);
 //    file << ss.str();
     file << strOut;
     file.close();
+    free(response);
     //cout<<ss.str();
     // if (recv(sockfd, buf, 100, 0) == -1) {
     //   perror("recv");
