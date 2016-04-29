@@ -171,14 +171,18 @@ main(int argc, char* argv[])
       return 5;
     }
 
+    int headerLen = (count-payloadLen);
+    string msgStr(msg.begin(), msg.begin()+headerLen);
+    cout << msgStr << endl;
     // (count-payloadLen) gets rid of the header
     string strOut(msg.begin()+(count-payloadLen), msg.end());
     cout << strOut;
 
-    ofstream file;
 
     // TODO: need to get the filename from url? or somewhere else
     string filename = request.getUrl();
+    if (filename == "/")
+      filename = "/index.html";
     filename.erase(0,1);
 
     string responseStatus = response->getStatus();
@@ -186,10 +190,16 @@ main(int argc, char* argv[])
 
     // If status code = 200 Ok, open the file and write to it
     if (okStatus != std::string::npos) {
+      //TODO: for some reason, its not writing to the file when doing:
+      // ./web-client http://google.com/
+      // it gets the response, just doesn't write to the file
       cout << "Writing to :" << filename << endl;
-      file.open(filename);
-      file << strOut;
-      file.close();
+//      ofstream file;
+//      file.open(filename);
+      ofstream file(filename, std::ios::out | std::ofstream::binary);
+      std::copy(msg.begin()+headerLen, msg.end(), std::ostreambuf_iterator<char>(file));
+//      file << strOut;
+//      file.close();
     }
     /* Testing finding ok status code
     else {

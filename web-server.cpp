@@ -120,21 +120,15 @@ int main(int argc, char* argv[])
         return 5;
       }
 
-        cout << "GOT HERE PLS\n";
       // TODO: Create HttpMessage, if it fails, return a 400 bad request message
       // do error checking on header fields such as version, if bad version !1.0 | !1.1
       // then return 505 HTTP version not supported response
       // if method (GET/POST) is not GET, then return 501 Not implemented response
       HttpRequest* clientReq = new HttpRequest();
       //clientReq->messageToObject(ss.str());
-        cout << "GOT HERE PLS00000000000\n";
       std::string tempss = ss.str();
       vector<char> reqVec(tempss.begin(), tempss.end());
-        cout << "GOT HERE PLS1111111111\n";
       clientReq->messageToObject(msg); // VS reqVec here
-      //TODO:need to set port when using messageToObject
-      clientReq->setPort(4000);
-        cout << "GOT HERE PLS22222\n";
 
       // Finding the hostname
       map<string, string> headers = clientReq->getHeaders();
@@ -142,7 +136,6 @@ int main(int argc, char* argv[])
       string reqHostname;
       if (it != headers.end())
         reqHostname = headers["Host"];
-        cout << "GOT HERE PLS33333333333\n";
 
       std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
       std::cout << "\nRequest Header: \n\n";
@@ -152,9 +145,9 @@ int main(int argc, char* argv[])
       std::cout << "Version: " << clientReq->getVersion() << endl;
       std::cout << "Host: " << reqHostname << endl;
 
-//  TODO: use hostname argument to check for valid headers
-//  port to check for valid port
-      if (clientReq->getPort() != port){// TODO: deal w/ other error checking || reqHostname != hostname) {
+//  TODO: use hostname argument to check if the request is to the right server.
+//  should we be doing this?
+      if (reqHostname != hostname){
         HttpResponse* responseObj = new HttpResponse();
         responseObj->setStatus("400 Bad Request");
         //string responseBlob = responseObj->buildResponse();
@@ -187,14 +180,19 @@ int main(int argc, char* argv[])
 
       // Dealing with root file request
       if (resFilename == "/") {
+        /*
         // check if index exists and is unlocked and accessible
-        ifstream infile("index.html");
+        ifstream infile("/index.html");
         if (infile.good())
-          resFilename = "index.html";
+          resFilename = "/index.html";
+        */
+        resFilename += "index.html";
       }
 
       // Prepending starting directory to requested filename
       resFilename.insert(0, filedir);
+
+      cout << "FILENAME: " << resFilename << endl << endl;
 
       std::cout << "trying to get file from path: " << resFilename << endl;
       //ifstream resFile (resFilename, ios::in|ios::binary|ios::ate);
