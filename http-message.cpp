@@ -66,6 +66,10 @@ void HttpMessage::setPayload(string payload) {
 }
 
 
+
+
+
+
 //==========================================//
 //============HttpRequest===================//
 //==========================================//
@@ -75,7 +79,10 @@ public:
     HttpRequest();
     
     //CLIENT sends a request
-    HttpRequest(string url);
+    void urlToObject(string url);
+    
+    //SERVER receives a request
+    void messageToObject(string message);
     
     string getMethod();
     void setMethod(string method);
@@ -102,7 +109,7 @@ HttpRequest::HttpRequest() {
     m_port = 0;
 }
 
-HttpRequest::HttpRequest(string url) {
+void HttpRequest::urlToObject(string url) {
     m_method = "GET";
     
     //splitting up url into HOST/URL
@@ -150,6 +157,79 @@ HttpRequest::HttpRequest(string url) {
     setHeader("Host", host);
     setPayload("");
     
+}
+
+void HttpRequest::messageToObject(string message) {
+    
+    int i = 0;
+    int msg_size = message.size();
+    
+    //method
+    while (message[i] != ' ') {
+        m_method += message[i];
+        i++;
+    }
+    i++;
+    
+    //url
+    while (message[i] != ' ') {
+        m_url += message[i];
+        i++;
+    }
+    i++;
+    
+    //skip HTTP/, then get version number
+    while (message[i] != '/') {
+        i++;
+    }
+    i++;
+    
+    if (message[i] == '1') {
+        if (message[i+2] == '0') {
+            setVersion(0);
+        } else {
+            setVersion(1);
+        }
+    } else {
+        setVersion(2);
+    }
+    
+    //skip to header lines
+    while (message[i] != '\n') {
+        i++;
+    }
+    i++;
+    
+    //headers
+    while (message[i] != '\r') {
+        
+        string key;
+        string value;
+        
+        while (message[i] != ':') {
+            key += message[i];
+            i++;
+        }
+        i += 2;
+        
+        while (message[i] != '\r') {
+            value += message[i];
+            i++;
+        }
+        i += 2;
+        
+        setHeader(key, value);
+        
+    }
+    i += 2;
+    
+    //payload (Optional message body)
+    string payload = "";
+    while (i < msg_size) {
+        payload += message[i];
+        i++;
+    }
+    setPayload(payload);
 }
 
 string HttpRequest::getMethod() {
@@ -201,6 +281,157 @@ string HttpRequest::buildRequest() {
 }
 
 
+
+
+
+
+
+
+
+//==========================================//
+//============HttpResponse==================//
+//==========================================//
+
+class HttpResponse : public HttpMessage {
+public:
+    HttpResponse();
+    
+    void responseToObject(string response);
+    
+    string buildResponse();
+    
+    string getStatus();
+    void setStatus(string status);
+    
+    
+private:
+    string m_status;
+};
+
+
+HttpResponse::HttpResponse() {
+    m_status = "";
+}
+
+
+string HttpResponse::getStatus() {
+    return m_status;
+}
+
+void HttpResponse::setStatus(string status) {
+    m_status = status;
+}
+
+//edit
+string HttpResponse::buildResponse() {
+    string response = "HTTP/";
+    switch(getVersion()) {
+        case 1:
+            response += "1.1 ";
+            break;
+        case 2:
+            response += "2.0 ";
+            break;
+        default:
+            response += "1.0 ";
+    }
+    response += m_status + "\r\n";
+    
+    map<string, string>headers = getHeaders();
+    map<string, string>::iterator it;
+    for (it = headers.begin(); it != headers.end(); it++) {
+        response += it->first + ": " + it->second + "\r\n";
+    }
+    response += "\r\n";
+    response += getPayload();
+    
+    return response;
+}
+
+void HttpResponse::responseToObject(string response) {
+    
+    int i = 0;
+    int response_size = response.size();
+    
+    //skip HTTP/, then get version number
+    while (response[i] != '/') {
+        i++;
+    }
+    i++;
+    
+    if (response[i] == '1') {
+        if (response[i+2] == '0') {
+            setVersion(0);
+        } else {
+            setVersion(1);
+        }
+    } else {
+        setVersion(2);
+    }
+    
+    //skip to status
+    while (response[i] != ' ') {
+        i++;
+    }
+    i++;
+    
+    //status
+    while (response[i] != '\r') {
+        m_status += response[i];
+        i++;
+    }
+    i += 2;
+    
+    
+    //headers
+    while (response[i] != '\r') {
+        
+        string key;
+        string value;
+        
+        while (response[i] != ':') {
+            key += response[i];
+            i++;
+        }
+        i += 2;
+        
+        while (response[i] != '\r') {
+            value += response[i];
+            i++;
+        }
+        i += 2;
+        
+        setHeader(key, value);
+        
+    }
+    i += 2;
+    
+    //payload (data)
+    string payload = "";
+    while (i < response_size) {
+        payload += response[i];
+        i++;
+    }
+    setPayload(payload);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void printHeaders(map<string, string> headers) {
     
     map<string, string>::iterator it = headers.begin();
@@ -211,9 +442,9 @@ void printHeaders(map<string, string> headers) {
 }
 
 
-/*
+
 int main() {
-    
+    /*
      HttpRequest test;
      
      cout << test.getVersion() << endl;
@@ -244,11 +475,13 @@ int main() {
      cout << test.getPort() << endl;
      test.setPort(80);
      cout << test.getPort() << endl;
-     
-    
-   // HttpRequest facebook("http://www.facebook.com/index.html");
+     */
     
     
+    HttpRequest facebook;
+    facebook.urlToObject("http://www.facebook.com/index.html");
+    
+    /*
      cout << "url: " << facebook.getUrl() << endl;
      cout << "method: " << facebook.getMethod() << endl;
      cout << "port: " << facebook.getPort() << endl;
@@ -257,10 +490,25 @@ int main() {
      cout << "payload: " << facebook.getPayload() << endl;
      
      printHeaders(facebook.getHeaders());
-     
+     */
     
     
     cout << facebook.buildRequest() << endl;
     
+    string test = facebook.buildRequest();
+    
+    HttpRequest test2;
+    test2.messageToObject(test);
+    
+    cout << test2.buildRequest() << endl;
+    
+    HttpRequest test3;
+    test3.messageToObject("GET /index.html HTTP/1.1\r\nHost: www-net.cs.umass.edu\r\nUser-Agent: Firefox/3.6.10\r\nAccept: text/html,application/xhtml+xml\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1,utf-8;q=0.7\r\nKeep-Alive: 115\r\nConnection: keep-alive\r\n\r\nhello");
+    cout << test3.buildRequest() << endl;
+    
+    HttpResponse test4;
+    test4.responseToObject("HTTP/1.1 200 OK\r\nDate: Sun, 26 Sep 2010 20:09:20 GMT\r\nServer: Apache/2.0.52 (CentOS)\r\nLast-Modified: Tue, 30 Oct 2007 17:00:02 GMT\r\nETag: \"17dc6-a5c-bf716880\"\r\nAccept-Ranges: bytes\r\nContent-Length: 2652\r\nKeep-Alive: timeout=10, max=100\r\nConnection: Keep-Alive\r\nContent-Type: text/html; charset=ISO-8859-1\r\n\r\ndatadatadatadatadatalol");
+    cout << test4.buildResponse() << endl;
+    
 }
-*/
+
