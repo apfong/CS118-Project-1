@@ -9,11 +9,18 @@
 #include <netdb.h>
 #include <fstream>
 #include "http-message.cpp"
+#include <thread>
 
 #include <iostream>
 #include <sstream>
 using namespace std;
 
+
+int timeout(){
+  sleep(.01);
+  cout<<"connection timed out"<<endl;
+        return 1;
+}
 int
 main(int argc, char* argv[])
 {
@@ -35,8 +42,10 @@ main(int argc, char* argv[])
   // }
 
   HttpRequest request(url);
-  const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
-  const char * port = to_string(request.getPort()).c_str();
+  string hoststring =  request.getHeaders()["Host"];//"www.lasr.cs.ucla.edu";
+  string portstring = to_string(request.getPort());
+  const char * host = hoststring.c_str();
+  const char * port = portstring.c_str();
 
   cout <<host<<"end"<<endl;
 
@@ -108,13 +117,12 @@ main(int argc, char* argv[])
   //while (!isEnd) {
     memset(buf, '\0', sizeof(buf));
 
-    //std::cout << "send: ";
-    //std::cin >> input;
+
     if (send(sockfd, test.c_str(), test.size(), 0) == -1) {
       perror("send");
       return 4;
     }
-
+    thread th(timeout);
     int count = 0;
     while(count < 5000){
       if (recv(sockfd, buf, 1, 0) == -1) {
@@ -123,7 +131,7 @@ main(int argc, char* argv[])
       }
       ss << buf;
       if(ss.str().find("\r\n\r\n") != -1){
-        int content = 14097+1;
+        //ss.str("");
         int sum = 0;
         bool last = false;
         while(true){
@@ -148,22 +156,11 @@ main(int argc, char* argv[])
         cout <<"sum: "<<sum;
         break;
       }
-      //char * bdy = strstr(buf,"\r\n\r\n");
-    //   if(bdy != NULL){
-    //       //cout<<"\n\n"<<&buf<<" "<<&bdy<<" "<<buf-bdy<<"\n"<<endl;
-    //       char * content = new char[14097+1];
-    //       //content[14097] = '\0';
-    //       int received = recv(sockfd, content, 14097, 0);
-    //       if (received == -1) {
-    //         perror("recv");
-    //         return 5;
-    //     }
-    // cout<<content;
-    // delete content;
-    //   break;
-    // }
-    count++;
+
+      count++;
     }
+
+
     ofstream file;
     file.open("index.html");
     file << ss.str();
