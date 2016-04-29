@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
 
 //  TODO: use hostname argument to check for valid headers
 //  port to check for valid port
-      if (clientReq->getPort() != port || reqHostname != hostname) {
+      if (clientReq->getPort() != port){// TODO: deal w/ other error checking || reqHostname != hostname) {
         HttpResponse* responseObj = new HttpResponse();
         responseObj->setStatus("400 Bad Request");
         //string responseBlob = responseObj->buildResponse();

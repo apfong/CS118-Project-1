@@ -171,91 +171,36 @@ main(int argc, char* argv[])
       return 5;
     }
 
-    /*
-    int count = 0;
-    while(count < 5000){
-      if (recv(sockfd, buf, 1, 0) == -1) {
-        perror("recv");
-        return 5;
-      }
-      cout << "RECIEVINGLLKDJSFLK";
-      ss << buf;
-      if(ss.str().find("\r\n\r\n") != -1){
-        int content = 14097+1;
-        int sum = 0;
-        bool last = false;
-        while(true){
-      cout << "otherblockishere";
-            int received = recv(sockfd, buf, 1, 0);
-            //sum += received;
-            //cout<<received<<endl;
-            if (received == -1) {
-                cout<<"error";
-                perror("recv");
-                return 5;
-            }
-          //if(received == 30){
-            ss<<buf;
-            //cout << buf;
-          //}
-          if(received == 0){
-            cout << "breaking out of recv loop\n\n";
-            break;
-            //ss<<buf;
-          }
-          
-          //content -= 30;
-        }
-        cout << "Response header: \n\n";
-        //cout <<"sum: "<<sum;
-        break;
-      }
-      //char * bdy = strstr(buf,"\r\n\r\n");
-    //   if(bdy != NULL){
-    //       //cout<<"\n\n"<<&buf<<" "<<&bdy<<" "<<buf-bdy<<"\n"<<endl;
-    //       char * content = new char[14097+1];
-    //       //content[14097] = '\0';
-    //       int received = recv(sockfd, content, 14097, 0);
-    //       if (received == -1) {
-    //         perror("recv");
-    //         return 5;
-    //     }
-    // cout<<content;
-    // delete content;
-    //   break;
-    // }
-    count++;
-    }
-    */
+    // (count-payloadLen) gets rid of the header
     string strOut(msg.begin()+(count-payloadLen), msg.end());
     cout << strOut;
-   // cout << ss.str();
+
     ofstream file;
+
+    // TODO: need to get the filename from url? or somewhere else
     string filename = request.getUrl();
     filename.erase(0,1);
-    cout << "Writing to :" << filename << endl;
+
     string responseStatus = response->getStatus();
-    cout << "Status :" << responseStatus << endl;
-//    file.open("pic.jpg");
-    file.open(filename);
-//    file << ss.str();
-    file << strOut;
-    file.close();
+    std::size_t okStatus = responseStatus.find("200");
+
+    // If status code = 200 Ok, open the file and write to it
+    if (okStatus != std::string::npos) {
+      cout << "Writing to :" << filename << endl;
+      file.open(filename);
+      file << strOut;
+      file.close();
+    }
+    /* Testing finding ok status code
+    else {
+      ofstream errf;
+      errf.open("error");
+      errf << "404 or 400";
+      errf.close();
+    }
+    */
+
     free(response);
-    //cout<<ss.str();
-    // if (recv(sockfd, buf, 100, 0) == -1) {
-    //   perror("recv");
-    //   return 5;
-    // }
-    // //ss << buf << std::endl;
-    // //std::cout << "echo: ";
-    // std::cout << buf << std::endl;
-
-    //if (ss.str() == "close\n")
-    //  break;
-
-    //ss.str("");
-  //}
 
   close(sockfd);
 
