@@ -26,19 +26,22 @@ public:
     map<string, string> getHeaders();
     void setHeader(string key, string value);
     
-    string getPayload();
-    void setPayload(string payload);
+    //string getPayload();
+    vector<char> getPayload();
+    //void setPayload(string payload);
+    void setPayload(vector<char> payload);
     
 private:
     int m_version; //0 -> 1.0, 1 -> 1.1, 2 -> 2.0
     map<string, string> m_headers;
-    string m_payload;
+    //string m_payload;
+    vector<char> m_payload;
 };
 
 
 HttpMessage::HttpMessage() {
     m_version = 0;
-    m_payload = "";
+    //m_payload = "";
 }
 
 int HttpMessage::getVersion() {
@@ -57,11 +60,13 @@ void HttpMessage::setHeader(string key, string value) {
     m_headers.insert(pair<string, string>(key, value));
 }
 
-string HttpMessage::getPayload() {
+//string HttpMessage::getPayload() {
+vector<char> HttpMessage::getPayload() {
     return m_payload;
 }
 
-void HttpMessage::setPayload(string payload) {
+//void HttpMessage::setPayload(string payload) {
+void HttpMessage::setPayload(vector<char> payload) {
     m_payload = payload;
 }
 
@@ -82,7 +87,8 @@ public:
     void urlToObject(string url);
     
     //SERVER receives a request
-    void messageToObject(string message);
+    //void messageToObject(string message);
+    void messageToObject(vector<char> message);
     
     string getMethod();
     void setMethod(string method);
@@ -93,7 +99,8 @@ public:
     int getPort();
     void setPort(int port);
     
-    string buildRequest();
+    //string buildRequest();
+    vector<char> buildRequest();
     
 private:
     string m_method;
@@ -155,11 +162,12 @@ void HttpRequest::urlToObject(string url) {
     //default version is 1.0
     setVersion(0);
     setHeader("Host", host);
-    setPayload("");
+//    setPayload("");
     
 }
 
-void HttpRequest::messageToObject(string message) {
+//void HttpRequest::messageToObject(string message) {
+void HttpRequest::messageToObject(vector<char> message) {
     
     int i = 0;
     int msg_size = message.size();
@@ -224,9 +232,11 @@ void HttpRequest::messageToObject(string message) {
     i += 2;
     
     //payload (Optional message body)
-    string payload = "";
+    //string payload = "";
+    vector<char> payload;
     while (i < msg_size) {
-        payload += message[i];
+        //payload += message[i];
+        payload.push_back(message[i]);
         i++;
     }
     setPayload(payload);
@@ -256,7 +266,8 @@ void HttpRequest::setPort(int port) {
     m_port = port;
 }
 
-string HttpRequest::buildRequest() {
+//string HttpRequest::buildRequest() {
+vector<char> HttpRequest::buildRequest() {
     string request = getMethod() + " " + getUrl() + " HTTP/";
     switch(getVersion()) {
         case 1:
@@ -275,9 +286,13 @@ string HttpRequest::buildRequest() {
         request += it->first + ": " + it->second + "\r\n";
     }
     request += "\r\n";
-    request += getPayload();
+ //   request += getPayload();
     
-    return request;
+    vector<char> requestVec(request.begin(), request.end());
+    vector<char> pl = getPayload();
+    requestVec.insert(requestVec.end(), pl.begin(), pl.end());
+
+    return requestVec;
 }
 
 
@@ -296,9 +311,11 @@ class HttpResponse : public HttpMessage {
 public:
     HttpResponse();
     
-    void responseToObject(string response);
+    //void responseToObject(string response);
+    void responseToObject(vector<char> response);
     
-    string buildResponse();
+    //string buildResponse();
+    vector<char> buildResponse();
     
     string getStatus();
     void setStatus(string status);
@@ -323,7 +340,8 @@ void HttpResponse::setStatus(string status) {
 }
 
 //edit
-string HttpResponse::buildResponse() {
+//string HttpResponse::buildResponse() {
+vector<char> HttpResponse::buildResponse() {
     string response = "HTTP/";
     switch(getVersion()) {
         case 1:
@@ -336,19 +354,24 @@ string HttpResponse::buildResponse() {
             response += "1.0 ";
     }
     response += m_status + "\r\n";
+    m_status += "\r\n";
     
     map<string, string>headers = getHeaders();
     map<string, string>::iterator it;
     for (it = headers.begin(); it != headers.end(); it++) {
-        response += it->first + ": " + it->second + "\r\n";
+      response += it->first + ": " + it->second + "\r\n";
     }
     response += "\r\n";
-    response += getPayload();
-    
-    return response;
+    //response += getPayload();
+    vector<char> responseVec(response.begin(), response.end());
+    vector<char> pl = getPayload();
+    responseVec.insert(responseVec.end(), pl.begin(), pl.end());
+
+    return responseVec;
 }
 
-void HttpResponse::responseToObject(string response) {
+//void HttpResponse::responseToObject(string response) {
+void HttpResponse::responseToObject(vector<char> response) {
     
     int i = 0;
     int response_size = response.size();
@@ -407,9 +430,11 @@ void HttpResponse::responseToObject(string response) {
     i += 2;
     
     //payload (data)
-    string payload = "";
+    //string payload = "";
+    vector<char> payload;
     while (i < response_size) {
-        payload += response[i];
+        //payload += response[i];
+        payload.push_back(response[i]);
         i++;
     }
     setPayload(payload);
@@ -442,9 +467,9 @@ void printHeaders(map<string, string> headers) {
 }
 
 
+/*
 
 int main() {
-    /*
      HttpRequest test;
      
      cout << test.getVersion() << endl;
@@ -475,13 +500,11 @@ int main() {
      cout << test.getPort() << endl;
      test.setPort(80);
      cout << test.getPort() << endl;
-     */
     
     
     HttpRequest facebook;
     facebook.urlToObject("http://www.facebook.com/index.html");
     
-    /*
      cout << "url: " << facebook.getUrl() << endl;
      cout << "method: " << facebook.getMethod() << endl;
      cout << "port: " << facebook.getPort() << endl;
@@ -490,7 +513,6 @@ int main() {
      cout << "payload: " << facebook.getPayload() << endl;
      
      printHeaders(facebook.getHeaders());
-     */
     
     
     cout << facebook.buildRequest() << endl;
@@ -512,3 +534,4 @@ int main() {
     
 }
 
+*/

@@ -15,11 +15,22 @@ Overall:
 ------------------------------------------------------------------------------
 Client:
 
-Server:
+Server: when forking, failed to close the newly connected client's file 
+descriptor in the parent fork, causing the first message send to be received
+by the parent branch. ended up refactoring the code in the parent branch to
+consist soely of closing that file descriptor. Also issue with reading from
+the client socket until a certain delimiter, for ex: \r\n\r\n. Worked
+iteratively, communicating with a simple client that would send a message.
+Hard part was understanding how to use recv to read in only a specific part of
+the message. After figuring out that it is possible to use recv byte by byte,
+the parsing of the incoming request was much easier.
 
 HTTP Message:
 
-Overall:
+Overall: Had to refactor our code to use a vector of char when sending the
+payload of the message, as binary data is improperly interpreted when put into
+strings, specifically because of the escape character '\'. This leads chars
+like '\0' to be misrepresented when sending the file.
 
 
 ------------------------------------------------------------------------------
@@ -31,11 +42,17 @@ None
 ------------------------------------------------------------------------------
 |                       How you tested your code and why                     |
 ------------------------------------------------------------------------------
-Client:
+Client: Made requests to different websites, tested receiving large files, both
+text and image (binary) files.
 
-Server:
+Server: Tested communication with the client to see that the header was being
+properly created (headers), and transmitted. Tried to connect to it with
+multiple clients and simultaneously download a large file. We saw that they
+were both receiving concurrently.
 
-HTTP Message:
+HTTP Message: Gave it a few random urls to which it would create the Http
+request and response. We then looked to make sure that the format matched that
+of a normal http header, with proper spacing and carriage returns
 
 Overall:
 

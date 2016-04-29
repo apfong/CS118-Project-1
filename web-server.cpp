@@ -11,6 +11,7 @@
 
 #include <fstream>
 #include "http-message.cpp"
+#include <iterator>
 
 #include <iostream>
 #include <sstream>
@@ -79,6 +80,9 @@ int main(int argc, char* argv[])
 
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
     inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
     std::cout << "Accept a connection from: " << ipstr << ":" <<
       ntohs(clientAddr.sin_port) << std::endl << std::endl;
 
@@ -89,12 +93,17 @@ int main(int argc, char* argv[])
       memset(buf, '\0', sizeof(buf));
       int bytesRecv;
       size_t foundHeaderEnd;
+      vector<char> msg;
 
+      std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
+      std::cout << "\nMessage received:\n\n";
       while ((bytesRecv = read(clientSockfd, buf, bufSize)) > 0) {
         // TODO: Implement HTTP Timeout, say if server received part of
         // message, but hasnt received the rest of the message for a long time
         std::cout << buf;
         ss << buf;
+        msg.push_back(*buf);
+
 
         foundHeaderEnd = ss.str().find("\r\n\r\n");
         //std::cout << buf << "    " << to_string(foundHeaderEnd) << std::endl;
@@ -104,31 +113,39 @@ int main(int argc, char* argv[])
         memset(buf, '\0', sizeof(buf));
       }
 
-      std::cout << endl << "finished recving\n";
+      std::cout << endl << "finished recving\n\n";
       // End of while loop
       if (bytesRecv == -1) {
         perror("recv");
         return 5;
       }
 
+        cout << "GOT HERE PLS\n";
       // TODO: Create HttpMessage, if it fails, return a 400 bad request message
       // do error checking on header fields such as version, if bad version !1.0 | !1.1
       // then return 505 HTTP version not supported response
       // if method (GET/POST) is not GET, then return 501 Not implemented response
       HttpRequest* clientReq = new HttpRequest();
-      // TODO: need a HttpRequest object constructor from the thing we recieved, not the url
-      clientReq->setMethod("GET");
-      clientReq->setUrl("/index.html");
+      //clientReq->messageToObject(ss.str());
+        cout << "GOT HERE PLS00000000000\n";
+      std::string tempss = ss.str();
+      vector<char> reqVec(tempss.begin(), tempss.end());
+        cout << "GOT HERE PLS1111111111\n";
+      clientReq->messageToObject(msg); // VS reqVec here
+      //TODO:need to set port when using messageToObject
       clientReq->setPort(4000);
-      clientReq->setVersion(0);
-      clientReq->setHeader("Host","localhost");
+        cout << "GOT HERE PLS22222\n";
 
+      // Finding the hostname
       map<string, string> headers = clientReq->getHeaders();
       map<string,string>::iterator it = headers.find("Host");
       string reqHostname;
       if (it != headers.end())
         reqHostname = headers["Host"];
+        cout << "GOT HERE PLS33333333333\n";
 
+      std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
+      std::cout << "\nRequest Header: \n\n";
       std::cout << "Method: " << clientReq->getMethod() << endl;
       std::cout << "Url: " << clientReq->getUrl() << endl;
       std::cout << "Port: " << clientReq->getPort() << endl;
@@ -136,6 +153,29 @@ int main(int argc, char* argv[])
       std::cout << "Host: " << reqHostname << endl;
 
 //  TODO: use hostname argument to check for valid headers
+//  port to check for valid port
+      if (clientReq->getPort() != port || reqHostname != hostname) {
+        HttpResponse* responseObj = new HttpResponse();
+        responseObj->setStatus("400 Bad Request");
+        //string responseBlob = responseObj->buildResponse();
+        vector<char> responseBlob = responseObj->buildResponse();
+
+        // Sending 404 Response object
+        //if (send(clientSockfd, responseBlob.c_str(), responseBlob.size(), 0) == -1) {
+        if (send(clientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
+          perror("send");
+          return 6;
+        }
+        else {
+          string s (responseBlob.begin(), responseBlob.end());
+          std::cout << "sent: \n" << s << endl;
+        }
+        delete responseObj;
+        printf("closing connection to %d\n", clientSockfd);
+        close(clientSockfd);
+        exit(0);
+      }
+
       // Preparing to open file
       std::stringstream filestream;
       std::string line;
@@ -144,7 +184,6 @@ int main(int argc, char* argv[])
       //ifstream resFile (resFilename);
       streampos size;
       char* memblock;
-
 
       // Dealing with root file request
       if (resFilename == "/") {
@@ -158,37 +197,89 @@ int main(int argc, char* argv[])
       resFilename.insert(0, filedir);
 
       std::cout << "trying to get file from path: " << resFilename << endl;
-      ifstream resFile (resFilename, ios::in|ios::binary|ios::ate);
+      //ifstream resFile (resFilename, ios::in|ios::binary|ios::ate);
+      ifstream resFile (resFilename, ios::in|ios::binary);
+//      ifstream resFile;
       // Opening file
-      if (resFile.is_open()) {
+      //if (resFile.is_open()) {
+      if (resFile.good()) {
+        std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
+        std::cout << "\nOpened file:\n\n";
+        resFile.open(resFilename);
+
         /*
-        while (getline(resFile, line)) {
-          filestream << line << endl;
-        }
-        */
         size = resFile.tellg();
         memblock = new char [size];
         resFile.seekg (0, ios::beg);
         resFile.read (memblock, size);
         resFile.close();
+        string payload = memblock;
+        */
+//        ostringstream payload;
+//        payload << resFile.rdbuf();
+        /*
+        string payload;
+        while (!resFile.eof()) {
+          payload.append(1, resFile.get());
+        }
+        */
+        cout << "GOT HERE PLS\n";
+        std::ifstream resFile(resFilename, std::ios::binary);
+        std::vector<char> payload((std::istreambuf_iterator<char>(resFile)),
+                                   std::istreambuf_iterator<char>());
+        cout << "1231243532521\n";
+        string payloadStr(payload.begin(), payload.end());
+        cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~`\n";
+        int payloadSize = payload.size();
 
+        cout << "ALKSDFJLKASDJFLAKSDFJ\n";
         // Sending file back to client if it exists and was read correctly
         // send back 200 OK status code
-        //if (send(clientSockfd, filestream.str().c_str(), filestream.str().size(), 0) == -1) {
-        if (send(clientSockfd, memblock, size, 0) == -1) {
+        HttpResponse* responseObj = new HttpResponse();
+        responseObj->setStatus("200 Ok");
+        responseObj->setHeader("Content Length:",to_string(payloadSize));
+        //responseObj->setHeader("Content Length:",payload.size());
+        responseObj->setPayload(payload);
+        //string responseBlob = responseObj->buildResponse();
+        vector<char> responseBlob = responseObj->buildResponse();
+        cout << "SOMEWherE IN THE MIDDLE\n";
+        // Sending response object
+        //if (send(clientSockfd, responseBlob.c_str(), responseBlob.size(), 0) == -1) {
+        if (send(clientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
           perror("send");
           return 6;
         }
-        else
-          //std::cout << "sent: " << filestream.str().c_str() << endl;
-          std::cout << "sent: " << memblock << endl;
+        else {
+          string s (responseBlob.begin(), responseBlob.end());
+          std::cout << "sent: " << s << endl;
+        }
+        cout << "GOT to the end \n";
 
+        resFile.close();
+        delete clientReq;
+        delete responseObj;
         delete[] memblock;
       }
       // can't open file, return 404 here or other error
       else {
         size = 0;
         std::cout << "404 ERROR\n";
+        HttpResponse* responseObj = new HttpResponse();
+        responseObj->setStatus("404 Not Found");
+        //string responseBlob = responseObj->buildResponse();
+        vector<char> responseBlob = responseObj->buildResponse();
+
+        // Sending 404 Response object
+        if (send(clientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
+          perror("send");
+          return 6;
+        }
+        else {
+          string s (responseBlob.begin(), responseBlob.end());
+          std::cout << "sent: " << s << endl;
+        }
+
+        delete responseObj;
       }
 
       printf("closing connection to %d\n", clientSockfd);

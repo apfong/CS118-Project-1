@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <iterator>
 using namespace std;
 
 int
@@ -34,7 +35,8 @@ main(int argc, char* argv[])
   //   return 1;
   // }
 
-  HttpRequest request(url);
+  HttpRequest request = HttpRequest();
+  request.urlToObject(url);
   const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
   const char * port = to_string(request.getPort()).c_str();
 
@@ -99,36 +101,70 @@ main(int argc, char* argv[])
   // send/receive data to/from connection
   bool isEnd = false;
   std::string input;
-  char buf[1] = {0};
+  int bufSize = 4;
+  char buf[bufSize];
   std::stringstream ss;
   //string test = "GET /classes/111_fall15/index.html HTTP/1.0\r\nHost: www.lasr.cs.ucla.edu\r\n\r\n";
-  string test = request.buildRequest();
-  cout<<test<<endl;
+  //string test = request.buildRequest();
+  vector<char> test = request.buildRequest();
+  string s(test.begin(), test.end());
+  //cout<<test<<endl;
+  cout<<s<<endl;
 
   //while (!isEnd) {
     memset(buf, '\0', sizeof(buf));
 
     //std::cout << "send: ";
     //std::cin >> input;
-    if (send(sockfd, test.c_str(), test.size(), 0) == -1) {
+    //if (send(sockfd, test.c_str(), test.size(), 0) == -1) {
+    if (send(sockfd, &test[0], test.size(), 0) == -1) {
       perror("send");
       return 4;
     }
 
+
+    int bytesRecv;
+    size_t foundHeaderEnd;
+    vector<char> msg;
+    while ((bytesRecv = read(sockfd, buf, bufSize)) > 0) {
+      //std::cout << buf;
+      ss << buf;
+      for (int i = 0; i < bytesRecv; i++) {
+        msg.push_back(buf[i]);
+      }
+
+      foundHeaderEnd = ss.str().find("\r\n\r\n");
+      //std::cout << buf << "    " << to_string(foundHeaderEnd) << std::endl;
+      if (foundHeaderEnd != string::npos)
+        break;
+
+      memset(buf, '\0', sizeof(buf));
+    }
+
+    std::cout << endl << "finished recving\n\n";
+    // End of while loop
+    if (bytesRecv == -1) {
+      perror("recv");
+      return 5;
+    }
+
+    /*
     int count = 0;
     while(count < 5000){
       if (recv(sockfd, buf, 1, 0) == -1) {
         perror("recv");
         return 5;
       }
+      cout << "RECIEVINGLLKDJSFLK";
       ss << buf;
       if(ss.str().find("\r\n\r\n") != -1){
         int content = 14097+1;
         int sum = 0;
         bool last = false;
         while(true){
+      cout << "otherblockishere";
             int received = recv(sockfd, buf, 1, 0);
-            sum += received;
+            //sum += received;
             //cout<<received<<endl;
             if (received == -1) {
                 cout<<"error";
@@ -137,15 +173,18 @@ main(int argc, char* argv[])
             }
           //if(received == 30){
             ss<<buf;
-            //cout << buf<<endl;
+            //cout << buf;
           //}
-          if(received == 0)
-              break;
+          if(received == 0){
+            cout << "breaking out of recv loop\n\n";
+            break;
             //ss<<buf;
+          }
           
           //content -= 30;
         }
-        cout <<"sum: "<<sum;
+        cout << "Response header: \n\n";
+        //cout <<"sum: "<<sum;
         break;
       }
       //char * bdy = strstr(buf,"\r\n\r\n");
@@ -164,9 +203,14 @@ main(int argc, char* argv[])
     // }
     count++;
     }
+    */
+    string strOut(msg.begin(), msg.end());
+    cout << strOut;
+   // cout << ss.str();
     ofstream file;
-    file.open("index.html");
-    file << ss.str();
+    file.open("pic.jpg");
+//    file << ss.str();
+    file << strOut;
     file.close();
     //cout<<ss.str();
     // if (recv(sockfd, buf, 100, 0) == -1) {
