@@ -131,9 +131,21 @@ void HttpRequest::urlToObject(string url) {
     i += 2;
     
     //store www... into host string
-    while (url[i] != '/' && url[i] != ':') {
+    while (i < url.size() && url[i] != '/' && url[i] != ':') {
         host += url[i];
         i++;
+    }
+    
+    //either consumed whole URL, reached '/', or reached ':'
+    
+    //if consumed whole URL, then default port 80, default url '/', default version 1.0, default Headers
+    //return
+    if (i == url.size()) {
+        m_port = 80;
+        m_url = "/";
+        setVersion(0);
+        setHeader("Host", host);
+        return;
     }
     
     //if a port number is specified...
@@ -142,12 +154,23 @@ void HttpRequest::urlToObject(string url) {
         
         string portnum;
         
-        while (url[i] != '/') {
+        while (i < url.size() && url[i] != '/') {
             portnum += url[i];
             i++;
         }
         
         m_port = stoi(portnum);
+        
+        //either consumed whole URL or reached '/'
+        
+        //if consumed whole URL, then default url '/', default version 1.0, default Headers
+        //return
+        if (i == url.size()) {
+            m_url = "/";
+            setVersion(0);
+            setHeader("Host", host);
+            return;
+        }
         
     } else { //else default to 80
         m_port = 80;
