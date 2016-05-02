@@ -183,7 +183,7 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     // send back 200 OK status code
     HttpResponse* responseObj = new HttpResponse();
     responseObj->setStatus("200 Ok");
-    responseObj->setHeader("Content Length:",to_string(payloadSize));
+    responseObj->setHeader("Content-Length:",to_string(payloadSize));
     responseObj->setPayload(payload);
     vector<char> responseBlob = responseObj->buildResponse();
     cout << "SOMEWherE IN THE MIDDLE\n";

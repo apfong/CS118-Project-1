@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 |                            High level design                               |
 ------------------------------------------------------------------------------
-Client:
+Client: create a request object based on the command line URL argument, set appropriate host and port based on input.  Use getaddrinfo() to get the available ip's (we only take the first one).  Attempt to connect to the server using the port and ip address info in the serverAddr struct.  Upon successful connection, we start reading in data into a buffer using a while loop until all the data is read.  Depending on the status code, it will either save the file or display an error.
 
 Server:
 
@@ -66,7 +66,7 @@ Bad request and see how you handle it
 ------------------------------------------------------------------------------
 |                 Contribution of each team member and their UID             |
 ------------------------------------------------------------------------------
-Brandon: Client UID
+Brandon: Client 504403364
 Max: HTTPMessage UID
 Alex: Server UID
 

@@ -8,12 +8,19 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <fstream>
+#include <thread>
 #include "http-message.cpp"
 
 #include <iostream>
 #include <sstream>
 #include <iterator>
 using namespace std;
+
+void timertimeout(){
+  this_thread::sleep_for(chrono::seconds(30));
+  cout<<"asynch timeout"<<endl;
+  exit(1);
+}
 
 int
 main(int argc, char* argv[])
@@ -103,7 +110,7 @@ main(int argc, char* argv[])
 
 
   // send/receive data to/from connection
-  bool isEnd = false;
+  //bool isEnd = false;
   std::string input;
   int bufSize = 1000;
   char buf[bufSize];
@@ -134,6 +141,9 @@ main(int argc, char* argv[])
     int createdResponse = 0; // bool to tell if response obj was created yet
     int count = 0; // total bytes received
     int payloadLen = 0;
+
+    thread timeout(timertimeout);
+    timeout.detach();
 
     while ((bytesRecv = read(sockfd, buf, bufSize)) > 0) {
       //std::cout << buf;
@@ -171,6 +181,7 @@ main(int argc, char* argv[])
 
       memset(buf, '\0', sizeof(buf));
     }
+
 
     std::cout << endl << "finished recving\n\n";
     // End of while loop
