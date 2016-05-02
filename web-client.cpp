@@ -48,10 +48,6 @@ main(int argc, char* argv[])
   string portstring = to_string(request.getPort());
   const char * host = hoststring.c_str();
   const char * port = portstring.c_str();
-//  const char * host = request.getHeaders()["Host"].c_str();//"www.lasr.cs.ucla.edu";
-//  const char * port = to_string(request.getPort()).c_str();
-
-  cout <<host<<"end"<<endl;
 
   struct addrinfo hints;
   struct addrinfo* res;
@@ -73,7 +69,7 @@ main(int argc, char* argv[])
     // convert the IP to a string and print it:
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
     inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
-    std::cout << "  " << ipstr << std::endl;
+    //std::cout << "  " << ipstr << std::endl;
     // std::cout << "  " << ipstr << ":" << ntohs(ipv4->sin_port) << std::endl;
   //}
 
@@ -86,7 +82,7 @@ main(int argc, char* argv[])
   serverAddr.sin_addr.s_addr = inet_addr(ipstr);
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
-  cout<<"trying to connect"<<endl;
+  //cout<<"trying to connect"<<endl;
   // connect to the server with struct serverAddr
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
     perror("connect");
@@ -105,8 +101,8 @@ main(int argc, char* argv[])
 
   char ipstr2[INET_ADDRSTRLEN] = {'\0'};
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr2, sizeof(ipstr2));
-  std::cout << "Set up a connection from: " << ipstr2 << ":" <<
-    ntohs(clientAddr.sin_port) << std::endl;
+  //std::cout << "Set up a connection from: " << ipstr2 << ":" <<
+    //ntohs(clientAddr.sin_port) << std::endl;
 
 
   // send/receive data to/from connection
@@ -120,7 +116,7 @@ main(int argc, char* argv[])
   vector<char> test = request.buildRequest();
   string s(test.begin(), test.end());
   //cout<<test<<endl;
-  cout<<s<<endl;
+  //cout<<s<<endl;
 
   //while (!isEnd) {
     memset(buf, '\0', sizeof(buf));
@@ -169,12 +165,12 @@ main(int argc, char* argv[])
           if (it != headers.end()) {
             std::string::size_type sz;
             payloadLen = stoi(headers["Content-Length"]);
-            cout << "Content Length: " << payloadLen << endl;
+            //cout << "Content Length: " << payloadLen << endl;
           }
           createdResponse = 1;
         }
         if ((bytesRecv < bufSize) && (count == payloadLen)) {
-          std::cout << "BREAKING OUT\n";
+          //std::cout << "BREAKING OUT\n";
           break;
         }
       }
@@ -193,9 +189,7 @@ main(int argc, char* argv[])
     int headerLen = (count-payloadLen);
     string msgStr(msg.begin(), msg.begin()+headerLen);
     //cout << msgStr << endl;
-    // (count-payloadLen) gets rid of the header
-    cout<<count<<endl<<payloadLen<<endl<<count - payloadLen;
-    //string strOut(msg.begin()+(count-payloadLen), msg.end());
+    
     string strOut(msg.begin(), msg.end());
     //cout << strOut;
 
@@ -224,6 +218,9 @@ main(int argc, char* argv[])
       std::copy(msg.begin()+headerLen, msg.end(), std::ostreambuf_iterator<char>(file));
       //file << strOut;
       //file.close();
+    }
+    else{
+      cout<<responseStatus<<endl;
     }
     /* Testing finding ok status code
     else {

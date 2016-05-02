@@ -13,7 +13,14 @@ Overall:
 ------------------------------------------------------------------------------
 |                Problems you ran into and how you solved them               |
 ------------------------------------------------------------------------------
-Client:
+Client:  Had a problem correctly interpreting the URL passed in, and the ip
+return would always say it is not found.  Turns out that the parsing method
+for our HTTP Message was incorrect, and we were pointing to a temporary copy
+of memory.  This meant that by the time the server ip was needed, it was 
+already gone from memory.  Fixed this by saving a copy of the host as a string,
+then it worked correctly.  Had a problem with the client timeout asynchronous 
+thread that said it was terminated before actively being explicity called. Turns
+out need to call detach on thread for it to run asynchrounously. 
 
 Server: when forking, failed to close the newly connected client's file 
 descriptor in the parent fork, causing the first message send to be received
@@ -46,7 +53,9 @@ None
 |                       How you tested your code and why                     |
 ------------------------------------------------------------------------------
 Client: Made requests to different websites, tested receiving large files, both
-text and image (binary) files.
+text and image (binary) files.  To test timeout, set the timout length to a small
+ value, to make sure that if time limit exceeded, would exit gracefully.  Send
+invalid requests, to make sure it could handle reading errors and displaying them.
 
 Server: Tested communication with the client to see that the header was being
 properly created (headers), and transmitted. Tried to connect to it with
