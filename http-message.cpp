@@ -10,6 +10,7 @@ using namespace std;
 
 #include <string>
 #include <map>
+#include <set>
 #include <vector>
 
 //==========================================//
@@ -23,6 +24,9 @@ public:
     int getVersion();
     void setVersion(int version);
     
+    bool isValid();
+    void invalidate();
+    
     map<string, string> getHeaders();
     void setHeader(string key, string value);
     
@@ -31,17 +35,23 @@ public:
     //void setPayload(string payload);
     void setPayload(vector<char> payload);
     
+    
 private:
     int m_version; //0 -> 1.0, 1 -> 1.1, 2 -> 2.0
     map<string, string> m_headers;
     //string m_payload;
     vector<char> m_payload;
+    bool m_valid;
 };
 
 
 HttpMessage::HttpMessage() {
     m_version = 0;
     //m_payload = "";
+    m_valid = true;
+    
+    
+    
 }
 
 int HttpMessage::getVersion() {
@@ -50,6 +60,14 @@ int HttpMessage::getVersion() {
 
 void HttpMessage::setVersion(int version) {
     m_version = version;
+}
+
+bool HttpMessage::isValid() {
+    return m_valid;
+}
+
+void HttpMessage::invalidate() {
+    m_valid = false;
 }
 
 map<string, string> HttpMessage::getHeaders() {
@@ -189,7 +207,7 @@ void HttpRequest::urlToObject(string url) {
     //default version is 1.0
     setVersion(0);
     setHeader("Host", host);
-//    setPayload("");
+    //    setPayload("");
     
 }
 
@@ -199,25 +217,58 @@ void HttpRequest::messageToObject(vector<char> message) {
     int i = 0;
     int msg_size = message.size();
     
+    if (i >= message.size()) {
+        invalidate();
+        return;
+    }
+    
     //method
     while (message[i] != ' ') {
         m_method += message[i];
         i++;
+        if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+            invalidate();
+            return;
+        }
     }
-    i++;
+    while (message[i] == ' ') {
+        i++;
+        if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+            invalidate();
+            return;
+        }
+    }
     
     //url
     while (message[i] != ' ') {
         m_url += message[i];
         i++;
+        if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+            invalidate();
+            return;
+        }
     }
-    i++;
+    while (message[i] == ' ') {
+        i++;
+        if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+            invalidate();
+            return;
+        }
+    }
     
     //skip HTTP/, then get version number
     while (message[i] != '/') {
         i++;
+        if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+            invalidate();
+            return;
+        }
     }
     i++;
+    if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+        invalidate();
+        return;
+    }
     
     if (message[i] == '1') {
         if (message[i+2] == '0') {
@@ -232,8 +283,16 @@ void HttpRequest::messageToObject(vector<char> message) {
     //skip to header lines
     while (message[i] != '\n') {
         i++;
+        if (i >= message.size()) {
+            invalidate();
+            return;
+        }
     }
     i++;
+    if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+        invalidate();
+        return;
+    }
     
     //headers
     while (message[i] != '\r') {
@@ -244,19 +303,44 @@ void HttpRequest::messageToObject(vector<char> message) {
         while (message[i] != ':') {
             key += message[i];
             i++;
+            if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+                invalidate();
+                return;
+            }
         }
         i += 2;
+        
+        while (message[i] == ' ') {
+            i++;
+            if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+                invalidate();
+                return;
+            }
+        }
         
         while (message[i] != '\r') {
             value += message[i];
             i++;
+            if (i >= message.size() || message[i] == '\n') {
+                invalidate();
+                return;
+            }
         }
         i += 2;
+        if (i >= message.size()) {
+            invalidate();
+            return;
+        }
         
         setHeader(key, value);
         
     }
-    i += 2;
+    i++;
+    if (i >= message.size() || message[i] != '\n') {
+        invalidate();
+        return;
+    }
+    i++;
     
     //payload (Optional message body)
     //string payload = "";
@@ -313,12 +397,12 @@ vector<char> HttpRequest::buildRequest() {
         request += it->first + ": " + it->second + "\r\n";
     }
     request += "\r\n";
- //   request += getPayload();
+    //   request += getPayload();
     
     vector<char> requestVec(request.begin(), request.end());
     vector<char> pl = getPayload();
     requestVec.insert(requestVec.end(), pl.begin(), pl.end());
-
+    
     return requestVec;
 }
 
@@ -386,14 +470,14 @@ vector<char> HttpResponse::buildResponse() {
     map<string, string>headers = getHeaders();
     map<string, string>::iterator it;
     for (it = headers.begin(); it != headers.end(); it++) {
-      response += it->first + ": " + it->second + "\r\n";
+        response += it->first + ": " + it->second + "\r\n";
     }
     response += "\r\n";
     //response += getPayload();
     vector<char> responseVec(response.begin(), response.end());
     vector<char> pl = getPayload();
     responseVec.insert(responseVec.end(), pl.begin(), pl.end());
-
+    
     return responseVec;
 }
 
@@ -423,7 +507,9 @@ void HttpResponse::responseToObject(vector<char> response) {
     while (response[i] != ' ') {
         i++;
     }
-    i++;
+    while (response[i] == ' ') {
+        i++;
+    }
     
     //status
     while (response[i] != '\r') {
@@ -444,6 +530,10 @@ void HttpResponse::responseToObject(vector<char> response) {
             i++;
         }
         i += 2;
+        
+        while (response[i] == ' ') {
+            i++;
+        }
         
         while (response[i] != '\r') {
             value += response[i];
@@ -495,70 +585,35 @@ void printHeaders(map<string, string> headers) {
 
 
 /*
-
-int main() {
-     HttpRequest test;
-     
-     cout << test.getVersion() << endl;
-     test.setVersion(5);
-     cout << test.getVersion() << endl;
-     test.setVersion(1);
-     cout << test.getVersion() << endl;
-     
-     
-     printHeaders(test.getHeaders());
-     test.setHeader("Host", "hello");
-     printHeaders(test.getHeaders());
-     test.setHeader("Test", "bye");
-     printHeaders(test.getHeaders());
-     
-     cout << test.getPayload() << endl;
-     test.setPayload("TestPayload");
-     cout << test.getPayload() << endl;
-     
-     cout << test.getMethod() << endl;
-     test.setMethod("MethodTest");
-     cout << test.getMethod() << endl;
-     
-     cout << test.getUrl() << endl;
-     test.setUrl("TestUrl");
-     cout << test.getUrl() << endl;
-     
-     cout << test.getPort() << endl;
-     test.setPort(80);
-     cout << test.getPort() << endl;
-    
-    
-    HttpRequest facebook;
-    facebook.urlToObject("http://www.facebook.com/index.html");
-    
-     cout << "url: " << facebook.getUrl() << endl;
-     cout << "method: " << facebook.getMethod() << endl;
-     cout << "port: " << facebook.getPort() << endl;
-     
-     cout << "version: " << facebook.getVersion() << endl;
-     cout << "payload: " << facebook.getPayload() << endl;
-     
-     printHeaders(facebook.getHeaders());
-    
-    
-    cout << facebook.buildRequest() << endl;
-    
-    string test = facebook.buildRequest();
-    
-    HttpRequest test2;
-    test2.messageToObject(test);
-    
-    cout << test2.buildRequest() << endl;
-    
-    HttpRequest test3;
-    test3.messageToObject("GET /index.html HTTP/1.1\r\nHost: www-net.cs.umass.edu\r\nUser-Agent: Firefox/3.6.10\r\nAccept: text/html,application/xhtml+xml\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1,utf-8;q=0.7\r\nKeep-Alive: 115\r\nConnection: keep-alive\r\n\r\nhello");
-    cout << test3.buildRequest() << endl;
-    
-    HttpResponse test4;
-    test4.responseToObject("HTTP/1.1 200 OK\r\nDate: Sun, 26 Sep 2010 20:09:20 GMT\r\nServer: Apache/2.0.52 (CentOS)\r\nLast-Modified: Tue, 30 Oct 2007 17:00:02 GMT\r\nETag: \"17dc6-a5c-bf716880\"\r\nAccept-Ranges: bytes\r\nContent-Length: 2652\r\nKeep-Alive: timeout=10, max=100\r\nConnection: Keep-Alive\r\nContent-Type: text/html; charset=ISO-8859-1\r\n\r\ndatadatadatadatadatalol");
-    cout << test4.buildResponse() << endl;
-    
-}
-
-*/
+ 
+ int main() {
+ HttpRequest test3;
+ string s = "GET /index.html HTTP/1.1\r\nHost: www-net.cs.umass.edu\r\nUser-Agent: Firefox/3.6.10\r\nAccept: text/html,application/xhtml+xml\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1,utf-8;q=0.7\r\nKeep-Alive: 115\r\nConnection: keep-alive\r\n\r\nhello";
+ vector<char> test(s.begin(), s.end());
+ test3.messageToObject(test);
+ vector<char> testvector = test3.buildRequest();
+ string s2(testvector.begin(), testvector.end());
+ cout << s2 << endl;
+ if (test3.isValid()) {
+ cout << "It is valid." << endl;
+ } else {
+ cout << "It is invalid." << endl;
+ }
+ 
+ HttpResponse test4;
+ string s3 = "HTTP/1.1 200 OK\r\nDate: Sun, 26 Sep 2010 20:09:20 GMT\r\nServer: Apache/2.0.52 (CentOS)\r\nLast-Modified: Tue, 30 Oct 2007 17:00:02 GMT\r\nETag: \"17dc6-a5c-bf716880\"\r\nAccept-Ranges: bytes\r\nContent-Length: 2652\r\nKeep-Alive: timeout=10, max=100\r\nConnection: Keep-Alive\r\nContent-Type: text/html; charset=ISO-8859-1\r\n\r\ndatadatadatadatadatalol";
+ vector<char> testing(s3.begin(), s3.end());
+ test4.responseToObject(testing);
+ vector<char> testvector2 = test4.buildResponse();
+ string s8(testvector2.begin(), testvector2.end());
+ cout << s8 << endl;
+ if (test4.isValid()) {
+ cout << "It is valid." << endl;
+ } else {
+ cout << "It is invalid." << endl;
+ }
+ 
+ }
+ 
+ 
+ */
