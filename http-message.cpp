@@ -265,12 +265,17 @@ void HttpRequest::messageToObject(vector<char> message) {
         }
     }
     i++;
-    if (i >= message.size() || message[i] == '\r' || message[i] == '\n') {
+    if (i >= message.size() || !isdigit(message[i])) {
         invalidate();
         return;
     }
     
+    
     if (message[i] == '1') {
+        if ((i+2) >= message.size() || !isdigit(message[i+2])) {
+            invalidate();
+            return;
+        }
         if (message[i+2] == '0') {
             setVersion(0);
         } else {
