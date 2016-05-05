@@ -142,8 +142,6 @@ int main(int argc, char* argv[])
             std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
             std::cout << "\nMessage received:\n\n";
             while ((bytesRecv = read(fd, buf, bufSize)) > 0) {
-              // TODO: Implement HTTP Timeout, say if server received part of
-              // message, but hasnt received the rest of the message for a long time
               std::cout << buf;
               ss << buf;
               msg.push_back(*buf);
@@ -164,17 +162,11 @@ int main(int argc, char* argv[])
               return 5;
             }
 
-            // TODO:
-            //       error checking on header fields such as version, if bad version !1.0 | !1.1
-            //           return 505 HTTP version not supported response
-            //       if method (GET/POST) is not GET, then return 501 Not implemented response
-
             // Creating Request object from received message
             HttpRequest* clientReq = new HttpRequest();
-            //clientReq->messageToObject(ss.str());
             std::string tempss = ss.str();
             vector<char> reqVec(tempss.begin(), tempss.end());
-            clientReq->messageToObject(msg); // VS reqVec here
+            clientReq->messageToObject(msg);
 
             // Finding the hostname
             map<string, string> headers = clientReq->getHeaders();
@@ -191,15 +183,12 @@ int main(int argc, char* argv[])
             std::cout << "Version: " << clientReq->getVersion() << endl;
             std::cout << "Host: " << reqHostname << endl;
 
-          //  TODO: use hostname argument to check if the request is to the right server.
-          //  should we be doing this?
-            //if (reqHostname != td->tHostname){
             if (!clientReq->isValid()){
               HttpResponse* responseObj = new HttpResponse();
               responseObj->setStatus("400 Bad Request");
               vector<char> responseBlob = responseObj->buildResponse();
 
-              // Sending 404 Response object
+              // Sending 400 Response object
               if (send(fd, &responseBlob[0], responseBlob.size(), 0) == -1) {
                 perror("send");
                 return 6;
@@ -211,7 +200,7 @@ int main(int argc, char* argv[])
               delete responseObj;
               printf("closing connection to %d\n", fd);
               close(fd);
-              //return 0;
+              return 0;
             }
 
             // Preparing to open file
