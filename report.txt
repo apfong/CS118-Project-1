@@ -88,7 +88,11 @@ error handling by editing the requests that our clients make. We then sent out
 some bad requests to our server, and made sure that our code was able to catch
 that the requests were poorly formatted and therefore invalid.
 
-Overall: 
+Overall: One common thing we did to test things was to edit the HTTP Message
+code so that our client would purposely send bad requests. This allowed us to
+check the functionality of the server. One specific time we used this was when
+our server was stopping after a bad requests, rather than simply sending the
+bad request and then continuing to listen for requests.
 
 Partial response
 Partial request
