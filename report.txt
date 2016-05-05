@@ -4,7 +4,27 @@
 ------------------------------------------------------------------------------
 Client: create a request object based on the command line URL argument, set appropriate host and port based on input.  Use getaddrinfo() to get the available ip's (we only take the first one).  Attempt to connect to the server using the port and ip address info in the serverAddr struct.  Upon successful connection, we start reading in data into a buffer using a while loop until all the data is read.  Depending on the status code, it will either save the file or display an error.
 
-Server:
+Server: The HTTP server works by first creating a socket, then binds that
+socket to a port. It then listens on that port for any incoming connections. If
+it received a connection request, it accepts thta and holds onto the file
+descriptor linked to the connected socket. This describes the processes of TCP
+connection between the server and a client. After this connection is established,
+the server continues to receive until it finds the end of an HTTP request header
+denoted by '\r\n\r\n'. It then looks to see if it has the file being asked for.
+If it does it then creates a HTTPResponse object which contains the request
+header, and then the payload (requested file) is appended to the end. This message
+is then sent to the client. After the server finishes sending, it closes the
+connection with the client.
+
+There are two implementations of the server which deal with concurrency in
+different ways. One does so synchronously through multithreading, while the
+other uses select() to achieve asynchronous listening and send/recv. In the
+threaded server, each new client is placed onto a new thread, allowing the
+server to continue to receieve connection requests.
+
+Both of these concurrent servers are able to connect to many clients concurrently,
+however when sending and receiving HTTP messages, later clients have to wait until
+the requests of previous clients are satisfied.
 
 HTTP Message: The HTTPMessage class along with subclasses HTTPRequest and
 HTTPResponse allow the client and server to make objects from HTTP messages
@@ -28,18 +48,26 @@ then it worked correctly.  Had a problem with the client timeout asynchronous
 thread that said it was terminated before actively being explicity called. Turns
 out need to call detach on thread for it to run asynchrounously. 
 
-Server: when forking, failed to close the newly connected client's file 
+Server: When forking, we failed to close the newly connected client's file
 descriptor in the parent fork, causing the first message send to be received
 by the parent branch. ended up refactoring the code in the parent branch to
-consist soely of closing that file descriptor. Also issue with reading from
-the client socket until a certain delimiter, for ex: \r\n\r\n. Worked
-iteratively, communicating with a simple client that would send a message.
+consist soely of closing that file descriptor. There was also an issue with
+reading from the client socket until a certain delimiter, for ex: '\r\n\r\n.'
 Hard part was understanding how to use recv to read in only a specific part of
 the message. After figuring out that it is possible to use recv byte by byte,
 the parsing of the incoming request was much easier.  We first implemented the
 transfer using a string, and this worked fine for text based files like html.
 However, it did not work for transferring images for example, so we changed
 our implementation to use a vector of chars instead.
+
+We also came into troubles when a header label was incorrectly typed. What
+happened as a result was that when requesting from the server, nothing would
+be sent besides the header. We solved it by figuring this typo out and correcting
+the spelling. Another issue was that when we received a bad request, the server
+would shutdown. We solved this by not exiting on a bad request but instead
+returning from the thread, and in the case of the asynchronous server, closing
+the connection to the client, removing it from the file descriptor set, and
+then continuing to the next iteration of the accept loop.
 
 HTTP Message: Error checking was the main issue. Parsing and extracting the
 data fields wasn't bad when we were expecting correct and valid HTTP requests,
@@ -60,8 +88,12 @@ GET, and that the version was specifically 1.0, 1.1, or 2.0.
 Overall: Had to refactor our code to use a vector of char when sending the
 payload of the message, as binary data is improperly interpreted when put into
 strings, specifically because of the escape character '\'. This leads chars
-like '\0' to be misrepresented when sending the file.
-
+like '\0' to be misrepresented when sending the file. Other issues that came
+up involved determining what headers were necessary and the correct way to
+tell if a request header was valid or not. We solved them by focusing on the
+most important and frequently uses cases. Thankfully most problems centered
+around typos and not gross misinterpretation of how to create a TCP connection
+and send HTTP messages between client and server.
 
 ------------------------------------------------------------------------------
 |                Additional instructions to build your project               |
@@ -104,9 +136,3 @@ Bad request and see how you handle it
 Brandon: Client 504403364
 Max: HTTPMessage 304290221
 Alex: Server UID
-
-Questions:
-  What headers do we need to support for responses?
-  What are we supposed to do with the hostname argument for the server?
-  For status header in response, do we need to keep track of code and phrase
-     separately, or is it sufficient to just have a string for both?
