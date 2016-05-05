@@ -183,7 +183,8 @@ int main(int argc, char* argv[])
             std::cout << "Version: " << clientReq->getVersion() << endl;
             std::cout << "Host: " << reqHostname << endl;
 
-            if (!clientReq->isValid()){
+            if (reqHostname != hostname) {
+  //          if (!clientReq->isValid()){
               HttpResponse* responseObj = new HttpResponse();
               responseObj->setStatus("400 Bad Request");
               vector<char> responseBlob = responseObj->buildResponse();
@@ -200,7 +201,8 @@ int main(int argc, char* argv[])
               delete responseObj;
               printf("closing connection to %d\n", fd);
               close(fd);
-              return 0;
+              FD_CLR(fd, &watchFds);
+              continue;
             }
 
             // Preparing to open file
