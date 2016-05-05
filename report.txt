@@ -6,7 +6,13 @@ Client: create a request object based on the command line URL argument, set appr
 
 Server:
 
-HTTP Message:
+HTTP Message: The HTTPMessage class along with subclasses HTTPRequest and
+HTTPResponse allow the client and server to make objects from HTTP messages
+and also to make HTTP messages from objects. Specifically, HTTPRequest objects
+can be built from input URLs or input messages, and an HTTP request message
+can be built from a HTTPRequest object. HTTPResponse objects can be built from
+input messages, and an HTTP response message can be built from a HTTPResponse
+object.
 
 Overall:
 
@@ -35,7 +41,21 @@ transfer using a string, and this worked fine for text based files like html.
 However, it did not work for transferring images for example, so we changed
 our implementation to use a vector of chars instead.
 
-HTTP Message:
+HTTP Message: Error checking was the main issue. Parsing and extracting the
+data fields wasn't bad when we were expecting correct and valid HTTP requests,
+but once we had to deal with bad requests, things got a little bit more
+difficult, because there are so many ways a request could go wrong. Right now,
+our server checks that the method was GET, and that the http version is either
+1.0, 1.1, or 2.0. It sends the bad request message to any other method and
+any other version number. We also check for the formatting of the requests,
+so that strings not in the specified format will be rejected. We accounted
+for this by adding loops to skip white space (because multiple spaces are
+apparently still valid), by adding checks in a few places to make sure that
+the message doesn't end prematurely or have carriage returns and new lines at
+invalid places, and by creating a new member method isValid() that allows the
+client and server to check whether or not an object was successfully created
+from a valid http message. Also, we had to check that the method was indeed
+GET, and that the version was specifically 1.0, 1.1, or 2.0.
 
 Overall: Had to refactor our code to use a vector of char when sending the
 payload of the message, as binary data is improperly interpreted when put into
@@ -63,9 +83,12 @@ were both receiving concurrently.
 
 HTTP Message: Gave it a few random urls to which it would create the Http
 request and response. We then looked to make sure that the format matched that
-of a normal http header, with proper spacing and carriage returns
+of a normal http header, with proper spacing and carriage returns. Also tested
+error handling by editing the requests that our clients make. We then sent out
+some bad requests to our server, and made sure that our code was able to catch
+that the requests were poorly formatted and therefore invalid.
 
-Overall:
+Overall: 
 
 Partial response
 Partial request
@@ -75,7 +98,7 @@ Bad request and see how you handle it
 |                 Contribution of each team member and their UID             |
 ------------------------------------------------------------------------------
 Brandon: Client 504403364
-Max: HTTPMessage UID
+Max: HTTPMessage 304290221
 Alex: Server UID
 
 Questions:
