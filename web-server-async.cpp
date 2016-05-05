@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
               delete responseObj;
               printf("closing connection to %d\n", fd);
               close(fd);
-              return 0;
+              //return 0;
             }
 
             // Preparing to open file

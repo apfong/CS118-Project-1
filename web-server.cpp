@@ -141,7 +141,7 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     printf("closing connection to %d\n", tClientSockfd);
     close(tClientSockfd);
 //    pthread_exit(NULL);
-    exit(0);
+//    exit(0);
   }
 
   // Preparing to open file
