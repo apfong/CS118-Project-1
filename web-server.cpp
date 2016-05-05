@@ -119,7 +119,7 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
 //  TODO: use hostname argument to check if the request is to the right server.
 //  should we be doing this?
   //if (reqHostname != td->tHostname){
-  if (reqHostname != tHostname){
+  if (!clientReq->isValid()){
     HttpResponse* responseObj = new HttpResponse();
     responseObj->setStatus("400 Bad Request");
     //string responseBlob = responseObj->buildResponse();
