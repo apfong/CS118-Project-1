@@ -18,7 +18,7 @@ using namespace std;
 
 void timertimeout(){
   this_thread::sleep_for(chrono::seconds(30));
-  cout<<"asynch timeout"<<endl;
+  cerr<<"asynch timeout"<<endl;
   exit(1);
 }
 
@@ -69,9 +69,7 @@ main(int argc, char* argv[])
     // convert the IP to a string and print it:
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
     inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
-    //std::cout << "  " << ipstr << std::endl;
-    // std::cout << "  " << ipstr << ":" << ntohs(ipv4->sin_port) << std::endl;
-  //}
+
 
   //create a struct sockaddr with the given port and ip address
   struct sockaddr_in serverAddr;
@@ -82,13 +80,11 @@ main(int argc, char* argv[])
   serverAddr.sin_addr.s_addr = inet_addr(ipstr);
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
-  //cout<<"trying to connect"<<endl;
   // connect to the server with struct serverAddr
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
     perror("connect");
     return 2;
   }
-  cout<<"connected!"<<endl;
 
   //socket for the client
   struct sockaddr_in clientAddr;
@@ -101,8 +97,6 @@ main(int argc, char* argv[])
 
   char ipstr2[INET_ADDRSTRLEN] = {'\0'};
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr2, sizeof(ipstr2));
-  //std::cout << "Set up a connection from: " << ipstr2 << ":" <<
-    //ntohs(clientAddr.sin_port) << std::endl;
 
 
   // send/receive data to/from connection
@@ -115,15 +109,10 @@ main(int argc, char* argv[])
   //string test = request.buildRequest();
   vector<char> test = request.buildRequest();
   string s(test.begin(), test.end());
-  //cout<<test<<endl;
-  //cout<<s<<endl;
 
   //while (!isEnd) {
     memset(buf, '\0', sizeof(buf));
 
-    //std::cout << "send: ";
-    //std::cin >> input;
-    //if (send(sockfd, test.c_str(), test.size(), 0) == -1) {
     if (send(sockfd, &test[0], test.size(), 0) == -1) {
       perror("send");
       return 4;
@@ -179,7 +168,7 @@ main(int argc, char* argv[])
     }
 
 
-    std::cout << endl << "finished recving\n\n";
+    //std::cout << endl << "finished recving\n\n";
     // End of while loop
     if (bytesRecv == -1) {
       perror("recv");
@@ -210,8 +199,6 @@ main(int argc, char* argv[])
       //TODO: for some reason, its not writing to the file when doing:
       // ./web-client http://google.com/
       // it gets the response, just doesn't write to the file
-      //cout<<strOut;
-      cout << "Writing to :" << filename << endl;
       //ofstream file;
       //file.open(filename);
       ofstream file(filename, std::ios::out | std::ofstream::binary);
@@ -220,7 +207,7 @@ main(int argc, char* argv[])
       //file.close();
     }
     else{
-      cout<<responseStatus<<endl;
+      cerr<<responseStatus<<endl;
     }
     /* Testing finding ok status code
     else {

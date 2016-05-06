@@ -8,7 +8,7 @@ Server:
 
 HTTP Message:
 
-Overall:
+Overall:  The three main parts of the project are Client, Server, and HTTP Message object.  Everything about HTTP messages is abstracted by the object.  HTTP Request and HTTP Response objects extend the parent class, and are built specifically for the needs of the Client and Server classes respectively.  Client class can create an HTTP Response object by passing in a url, and get the connection the server set up with the needed information.  Once the client wants to send a request, it calls the BuildRequest() function of the HTTP Request object that constructs a well formatted character vector in the form of an http request message containing all the relevant information within in the object.  The Server class, when established connection with a client, will listen on a socket to read in the character vector.  It then calls the responseToObject() function, which converts a request formatted string into an HTTP Response object.  From this object, if it is a valid http request, then it will load the requested file into a character vector, and send it back to the client through the connection.  Once the response is received, the file will be saved if status successful, otherwise will show received error.
 
 ------------------------------------------------------------------------------
 |                Problems you ran into and how you solved them               |
