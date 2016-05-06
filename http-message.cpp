@@ -238,6 +238,15 @@ void HttpRequest::messageToObject(vector<char> message) {
             return;
         }
     }
+
+    string check_method = "";
+    for (int k = 0; k < m_method.size(); k++) {
+      check_method += tolower(m_method[k]);
+    }
+    if (check_method != "get") {
+      invalidate();
+      return;
+    }
     
     //url
     while (message[i] != ' ') {
@@ -278,11 +287,26 @@ void HttpRequest::messageToObject(vector<char> message) {
         }
         if (message[i+2] == '0') {
             setVersion(0);
-        } else {
+        } else if (message[i+2] == '1') {
             setVersion(1);
-        }
-    } else {
+        } else {
+	  invalidate();
+	  return;
+	}
+    } else if (message[i] == '2') {
+      if ((i+2) >= message.size() || !isdigit(message[i+2])) {
+	invalidate();
+	return;
+      }
+      if (message[i+2] == '0') {
         setVersion(2);
+      } else {
+	invalidate();
+	return;
+      }
+    } else {
+      invalidate();
+      return;
     }
     
     //skip to header lines

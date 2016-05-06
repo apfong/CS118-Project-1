@@ -13,7 +13,6 @@
 #include "http-message.cpp"
 #include <iterator>
 #include <thread>
-//#include <pthread.h>
 
 #include <iostream>
 #include <sstream>
@@ -21,32 +20,17 @@ using namespace std;
 
 #define MAXBYTES 512 // most bytes we can receive at a time
 
-struct thread_data {
-//  struct sockaddr_in* tClientAddrPtr;
-  struct sockaddr_in tClientAddr;
-  int tClientSockfd;
-  string tHostname;
-  int tPort;
-  string tFiledir;
-};
-
 //void *HandleRequest(void *threadarg) { //pthread way
 void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHostname,
                    int tPort, string tFiledir) {
-//  struct thread_data *td;
-//  td = (struct thread_data *) threadarg;
-
-  //cout << "Hello, this is a new thread with socket id: " << td->tClientSockfd << endl;
   cout << "Hello, this is a new thread with socket id: " << tClientSockfd << endl;
 
   char ipstr[INET_ADDRSTRLEN] = {'\0'};
-  //inet_ntop(td->tClientAddr.sin_family, &(td->tClientAddr).sin_addr, ipstr, sizeof(ipstr));
   inet_ntop(tClientAddr.sin_family, &(tClientAddr).sin_addr, ipstr, sizeof(ipstr));
   std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
   std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
   std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
   std::cout << "Accept a connection from: " << ipstr << ":" <<
-  //ntohs((td->tClientAddr).sin_port) << std::endl << std::endl;
   ntohs((tClientAddr).sin_port) << std::endl << std::endl;
 
   // Size of recv/send buffer
@@ -54,7 +38,6 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
 
   char buf[MAXBYTES] = {0};
   std::stringstream ss;
-  //close(sockfd); // closes listener for new connections
   memset(buf, '\0', sizeof(buf));
   int bytesRecv;
   int count = 0; // total bytes received
@@ -63,10 +46,7 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
 
   std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
   std::cout << "\nMessage received:\n\n";
-  //while ((bytesRecv = read(td->tClientSockfd, buf, bufSize)) > 0) {
   while ((bytesRecv = read(tClientSockfd, buf, bufSize)) > 0) {
-    // TODO: Implement HTTP Timeout, say if server received part of
-    // message, but hasnt received the rest of the message for a long time
     std::cout << buf;
     ss << buf;
     msg.push_back(*buf);
@@ -74,7 +54,6 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
 
 
     foundHeaderEnd = ss.str().find("\r\n\r\n");
-    //std::cout << buf << "    " << to_string(foundHeaderEnd) << std::endl;
     if (foundHeaderEnd != string::npos)
       break;
 
@@ -88,11 +67,6 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     //return 5;
     exit(5);
   }
-
-  // TODO:
-  //       error checking on header fields such as version, if bad version !1.0 | !1.1
-  //           return 505 HTTP version not supported response
-  //       if method (GET/POST) is not GET, then return 501 Not implemented response
 
   // Creating Request object from received message
   HttpRequest* clientReq = new HttpRequest();
@@ -116,20 +90,14 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
   std::cout << "Version: " << clientReq->getVersion() << endl;
   std::cout << "Host: " << reqHostname << endl;
 
-//  TODO: use hostname argument to check if the request is to the right server.
-//  should we be doing this?
-  //if (reqHostname != td->tHostname){
   if (!clientReq->isValid()){
     HttpResponse* responseObj = new HttpResponse();
     responseObj->setStatus("400 Bad Request");
-    //string responseBlob = responseObj->buildResponse();
     vector<char> responseBlob = responseObj->buildResponse();
 
-    // Sending 404 Response object
-    //if (send(td->tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
+    // Sending 400 Response object
     if (send(tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
       perror("send");
-      //return 6;
       exit(6);
     }
     else {
@@ -137,11 +105,9 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
       std::cout << "sent: \n" << s << endl;
     }
     delete responseObj;
-    //printf("closing connection to %d\n", td->tClientSockfd);
     printf("closing connection to %d\n", tClientSockfd);
     close(tClientSockfd);
-//    pthread_exit(NULL);
-    exit(0);
+    return;
   }
 
   // Preparing to open file
@@ -149,7 +115,6 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
   std::string line;
 
   std::string resFilename = clientReq->getUrl();
-  //ifstream resFile (resFilename);
   streampos size;
   char* memblock;
 
@@ -159,7 +124,6 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
   }
 
   // Prepending starting directory to requested filename
-  //resFilename.insert(0, td->tFiledir);
   resFilename.insert(0, tFiledir);
 
   std::cout << "trying to get file from path: " << resFilename << endl;
@@ -189,10 +153,8 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     cout << "SOMEWherE IN THE MIDDLE\n";
 
     // Sending response object
-    //if (send(td->tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
     if (send(tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
       perror("send");
-      //return 6;
       exit(6);
     }
     else {
@@ -216,10 +178,8 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     vector<char> responseBlob = responseObj->buildResponse();
 
     // Sending 404 Response object
-    //if (send(td->tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
     if (send(tClientSockfd, &responseBlob[0], responseBlob.size(), 0) == -1) {
       perror("send");
-      //return 6;
       exit(6);
     }
     else {
@@ -230,13 +190,8 @@ void HandleRequest(struct sockaddr_in tClientAddr, int tClientSockfd, string tHo
     delete responseObj;
   }
 
-  //printf("closing connection to %d\n", td->tClientSockfd);
   printf("closing connection to %d\n", tClientSockfd);
-  //close(td->tClientSockfd);
   close(tClientSockfd);
-  //free(td->tClientAddrPtr);
-  //pthread_exit(NULL);
-  //exit(0);
 }
 
 int main(int argc, char* argv[])
@@ -284,18 +239,13 @@ int main(int argc, char* argv[])
   }
 
 
-//  vector<pthread_t> threads;
   vector<thread> threads;
-  //vector<struct sockaddr_in> addresses;
 
   // listen for and accept a new connection
   while (true) {
     struct sockaddr_in clientAddr;
-    //struct sockaddr_in* clientAddr = (struct sockaddr_in*)malloc(sizeof(*clientAddr));
     socklen_t clientAddrSize = sizeof(clientAddr);
-    //socklen_t clientAddrSize = sizeof(*clientAddr);
     int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
-    //int clientSockfd = accept(sockfd, (struct sockaddr*)clientAddr, &clientAddrSize);
 
     if (clientSockfd == -1) {
       perror("accept");
@@ -303,25 +253,6 @@ int main(int argc, char* argv[])
     }
 
     thread(HandleRequest, clientAddr, clientSockfd, hostname, port, filedir).detach();
-//    pthread_t new_thread;
-//    struct thread_data td;
-//    int rc;
-
-    /*
-    td.tClientAddrPtr = clientAddr;
-    td.tClientAddr = *clientAddr;
-    td.tClientSockfd = clientSockfd;
-    td.tHostname = hostname;
-    td.tPort = port;
-    td.tFiledir = filedir;
-    rc = pthread_create(&new_thread, NULL, HandleRequest, (void*) &td);
-    if (rc) {
-      cout << "Error: unable to create thread," << rc << endl;
-      exit(-1);
-    }
-    threads.push_back(new_thread);
-    */
   }
-  //pthread_exit(NULL);
   return 0;
 }
