@@ -95,7 +95,8 @@ int main(int argc, char* argv[])
     }
 
     if (nReadyFds == 0) {
-      cout << "no data is received for 3 seconds!" << endl;
+      //cerr << "no data is received for 3 seconds!" << endl;
+      continue;
     }
     else {
       for (int fd = 0; fd <= maxSockfd; fd++) {
@@ -113,10 +114,10 @@ int main(int argc, char* argv[])
 
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(clientAddr.sin_family, &(clientAddr).sin_addr, ipstr, sizeof(ipstr));
-            std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-            std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-            std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-            std::cout << "Accept a connection from: " << ipstr << ":" <<
+            cerr << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+            cerr << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+            cerr << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+            cerr << "Accept a connection from: " << ipstr << ":" <<
             ntohs((clientAddr).sin_port) << std::endl << std::endl;
 
             // update maxSockfd
@@ -132,17 +133,17 @@ int main(int argc, char* argv[])
             int bufSize = 1;
 
             char buf[MAXBYTES] = {0};
-            std::stringstream ss;
+            stringstream ss;
             memset(buf, '\0', sizeof(buf));
             int bytesRecv;
             int count = 0; // total bytes received
             size_t foundHeaderEnd;
             vector<char> msg;
 
-            std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
-            std::cout << "\nMessage received:\n\n";
+            cerr << "//////////////////////////////////////////////////////////////////////////////\n";
+            cerr << "\nMessage received:\n\n";
             while ((bytesRecv = read(fd, buf, bufSize)) > 0) {
-              std::cout << buf;
+              cerr << buf;
               ss << buf;
               msg.push_back(*buf);
               count += bytesRecv;
@@ -155,7 +156,7 @@ int main(int argc, char* argv[])
               memset(buf, '\0', sizeof(buf));
             }
 
-            std::cout << endl << "finished recving " << count << " bytes\n\n";
+            cerr << endl << "finished recving " << count << " bytes\n\n";
             // End of while loop
             if (bytesRecv == -1) {
               perror("recv");
@@ -164,7 +165,7 @@ int main(int argc, char* argv[])
 
             // Creating Request object from received message
             HttpRequest* clientReq = new HttpRequest();
-            std::string tempss = ss.str();
+            string tempss = ss.str();
             vector<char> reqVec(tempss.begin(), tempss.end());
             clientReq->messageToObject(msg);
 
@@ -175,16 +176,15 @@ int main(int argc, char* argv[])
             if (it != headers.end())
               reqHostname = headers["Host"];
 
-            std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
-            std::cout << "\nRequest Header: \n\n";
-            std::cout << "Method: " << clientReq->getMethod() << endl;
-            std::cout << "Url: " << clientReq->getUrl() << endl;
-            std::cout << "Port: " << clientReq->getPort() << endl;
-            std::cout << "Version: " << clientReq->getVersion() << endl;
-            std::cout << "Host: " << reqHostname << endl;
+            cerr << "//////////////////////////////////////////////////////////////////////////////\n";
+            cerr << "\nRequest Header: \n\n";
+            cerr << "Method: " << clientReq->getMethod() << endl;
+            cerr << "Url: " << clientReq->getUrl() << endl;
+            cerr << "Port: " << clientReq->getPort() << endl;
+            cerr << "Version: " << clientReq->getVersion() << endl;
+            cerr << "Host: " << reqHostname << endl;
 
-            if (reqHostname != hostname) {
-  //          if (!clientReq->isValid()){
+            if (!clientReq->isValid()){
               HttpResponse* responseObj = new HttpResponse();
               responseObj->setStatus("400 Bad Request");
               vector<char> responseBlob = responseObj->buildResponse();
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
               }
               else {
                 string s (responseBlob.begin(), responseBlob.end());
-                std::cout << "sent: \n" << s << endl;
+                cerr << "sent: \n" << s << endl;
               }
               delete responseObj;
               printf("closing connection to %d\n", fd);
@@ -206,10 +206,10 @@ int main(int argc, char* argv[])
             }
 
             // Preparing to open file
-            std::stringstream filestream;
-            std::string line;
+            stringstream filestream;
+            string line;
 
-            std::string resFilename = clientReq->getUrl();
+            string resFilename = clientReq->getUrl();
             streampos size;
             char* memblock;
 
@@ -221,31 +221,27 @@ int main(int argc, char* argv[])
             // Prepending starting directory to requested filename
             resFilename.insert(0, filedir);
 
-            std::cout << "trying to get file from path: " << resFilename << endl;
+            cerr << "trying to get file from path: " << resFilename << endl;
             ifstream resFile (resFilename, ios::in|ios::binary);
             if (resFile.good()) {
-              std::cout << "//////////////////////////////////////////////////////////////////////////////\n";
-              std::cout << "\nOpened file:\n\n";
+              cerr << "//////////////////////////////////////////////////////////////////////////////\n";
+              cerr << "\nOpened file:\n\n";
               resFile.open(resFilename);
 
-              cout << "GOT HERE\n";
-              std::ifstream resFile(resFilename, std::ios::binary);
-              std::vector<char> payload((std::istreambuf_iterator<char>(resFile)),
+              cerr << "GOT HERE\n";
+              ifstream resFile(resFilename, std::ios::binary);
+              vector<char> payload((std::istreambuf_iterator<char>(resFile)),
                                          std::istreambuf_iterator<char>());
-              cout << "1231243532521\n";
               string payloadStr(payload.begin(), payload.end());
-              cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~`\n";
               int payloadSize = payload.size();
 
-              cout << "ALKSDFJLKASDJFLAKSDFJ\n";
               // Sending file back to client if it exists and was read correctly
               // send back 200 OK status code
               HttpResponse* responseObj = new HttpResponse();
               responseObj->setStatus("200 Ok");
-              responseObj->setHeader("Content-Length:",to_string(payloadSize));
+              responseObj->setHeader("Content-Length",to_string(payloadSize));
               responseObj->setPayload(payload);
               vector<char> responseBlob = responseObj->buildResponse();
-              cout << "SOMEWherE IN THE MIDDLE\n";
 
               // Sending response object
               if (send(fd, &responseBlob[0], responseBlob.size(), 0) == -1) {
@@ -254,9 +250,9 @@ int main(int argc, char* argv[])
               }
               else {
                 string s (responseBlob.begin(), responseBlob.end());
-                std::cout << "sent: " << s << endl;
+                cerr << "payload length: " << s.length() << endl;
               }
-              cout << "GOT to the end \n";
+              cerr << "GOT to the end \n";
 
               resFile.close();
               delete clientReq;
@@ -266,7 +262,7 @@ int main(int argc, char* argv[])
             // can't open file, return 404 here or other error
             else {
               size = 0;
-              std::cout << "404 ERROR\n";
+              cerr << "404 ERROR\n";
               HttpResponse* responseObj = new HttpResponse();
               responseObj->setStatus("404 Not Found");
               vector<char> responseBlob = responseObj->buildResponse();
@@ -278,7 +274,7 @@ int main(int argc, char* argv[])
               }
               else {
                 string s (responseBlob.begin(), responseBlob.end());
-                std::cout << "sent: " << s << endl;
+                cerr << "sent: " << s << endl;
               }
 
               delete responseObj;

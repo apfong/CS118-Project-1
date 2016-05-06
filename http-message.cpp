@@ -607,7 +607,7 @@ void printHeaders(map<string, string> headers) {
     
     map<string, string>::iterator it = headers.begin();
     while (it != headers.end()) {
-        cout << it->first << ": " << it->second << endl;
+        cerr << it->first << ": " << it->second << endl;
         it++;
     }
 }
