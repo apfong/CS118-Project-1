@@ -417,7 +417,7 @@ vector<char> HttpRequest::buildRequest() {
             request += "2.0\r\n";
             break;
         default:
-            request += "1.\r\n";
+            request += "1.0\r\n";
     }
     
     map<string, string>headers = getHeaders();
